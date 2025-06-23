@@ -165,7 +165,7 @@ const handleLogin = async (values) => {
     // 로그인 성공 시, 컴포넌트에서 직접 페이지 이동
     if (success) {
       message.success('로그인 성공!')
-      router.push('/chat') // 또는 '/dashboard'
+      router.push('/marketplace') // 또는 '/dashboard'
     }
   } finally {
     loading.value = false
