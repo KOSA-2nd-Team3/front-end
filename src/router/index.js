@@ -56,6 +56,12 @@ const router = createRouter({
             name: 'subscription',
             component: () => import('@/views/SubscriptionSelectionView.vue'),
             meta: {requiresAuth: true}
+        },
+        {
+            path: '/subscription/create/:serviceId',
+            name: 'subscription-create',
+            component: () => import('@/views/SubscriptionCreateView.vue'),
+            meta: {requiresAuth: true}
         }
     ],
 })
