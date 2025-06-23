@@ -149,7 +149,7 @@ onMounted(async () => {
     senderLoginId.value = null
   }
 
-  fetchChatRooms()
+  // fetchChatRooms()   
 })
 
 onBeforeUnmount(() => {
