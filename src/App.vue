@@ -47,6 +47,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
+
 // 반응형 데이터
 const globalLoading = ref(false)
 
