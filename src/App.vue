@@ -60,7 +60,7 @@ const isPublicRoute = computed(() => {
 const currentPage = computed(() => {
   const path = route.path
   if (path === '/' || path === '/marketplace') return 'home'
-  if (path === '/subscribe') return 'subscribe'
+  if (path === '/dashboard') return 'dashboard'
   if (path === '/chat') return 'chat'
   if (path === '/community') return 'community'
   return 'home'
