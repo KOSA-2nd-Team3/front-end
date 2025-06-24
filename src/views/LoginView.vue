@@ -92,18 +92,6 @@
           </a-button>
         </div>
 
-        <!-- 서버 연결 테스트 버튼 -->
-        <div style="margin-top: 20px;">
-          <a-button
-              @click="testServerConnection"
-              type="dashed"
-              size="small"
-              block
-              :disabled="loading"
-          >
-            🔍 서버 연결 테스트
-          </a-button>
-        </div>
       </div>
     </div>
 

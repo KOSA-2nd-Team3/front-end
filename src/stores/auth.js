@@ -113,8 +113,17 @@ export const useAuthStore = defineStore('auth', () => {
                 console.error('- 응답 데이터:', error.response?.data)
                 console.error('- 요청 설정:', error.config)
 
+                const code = error.response?.data?.code;
+
                 if (error.response?.status === 401) {
-                    alert('아이디 또는 비밀번호가 일치하지 않습니다.')
+                    if (code === 'A005') {
+                        // 이메일 인증 실패 코드
+                        alert('이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요.');
+                    } else {
+                        alert('아이디 또는 비밀번호가 일치하지 않습니다.');
+                    }
+
+                    //alert('아이디 또는 비밀번호가 일치하지 않습니다.')
                 } else if (error.response?.status === 500) {
                     alert('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
                 } else {

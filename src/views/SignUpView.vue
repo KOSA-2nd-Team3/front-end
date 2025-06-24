@@ -171,7 +171,9 @@ const handleSignup = async (values) => {
   try {
     const success = await authStore.join(values)
     if (success) {
-      message.success('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.')
+      authStore.isAuthenticated = false
+      message.success('입력하신 이메일 주소로 인증 메일이 발송되었습니다.\n메일함에서 인증을 완료해주세요.')
+      //message.success('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.')
       setTimeout(() => {
         router.push('/login')
       }, 1500)
