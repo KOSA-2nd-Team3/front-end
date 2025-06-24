@@ -25,7 +25,7 @@
                 <!-- 로고 및 인센티브 배지 -->
                 <div class="card-top">
                   <div class="service-logo">
-                    <img :src="getPlatformLogo(service.platformName)" alt="logo" class="logo-img" />
+                    <img :src=service.imageUrl alt="logo" class="logo-img" />
                   </div>
                  </div>
 
@@ -40,7 +40,7 @@
                       +{{ service.capacity - service.members.length }}
                     </div>
                   </div>
-                </div>
+                 </div>
 
                 <!-- 이름 + 카테고리 -->
                 <div class="service-info">
@@ -136,6 +136,7 @@ const filteredServices = computed(() => {
 // 메서드들
 const setActiveCategory = (category) => {
   activeCategory.value = category
+  fetchServices()
 }
 
 const handleServiceClick = (service) => {
@@ -148,25 +149,6 @@ const getTagColor = (tag) => {
   const colors = ['blue', 'green', 'orange', 'purple', 'cyan']
   return colors[Math.floor(Math.random() * colors.length)]
 }
-
-const logoMap = {
-  '넷플릭스': 'http://localhost:8080/netflix.png',
-  '디즈니플러스': 'http://localhost:8080/disney.png',
-  '티빙': 'http://localhost:8080/tving.png',
-  '웨이브': 'http://localhost:8080/wavve.png',
-  '왓챠': 'http://localhost:8080/watcha.png',
-  '라프텔': 'http://localhost:8080/laftel.png',
-  'Apple TV+': 'http://localhost:8080/appletv.png',
-  'GPT': 'http://localhost:8080/chatgpt.png',
-  'Office 365': 'http://localhost:8080/office365.png',
-  '밀리의 서재': 'http://localhost:8080/millie.png',
-  '닌텐도 패밀리': 'http://localhost:8080/nintendo.png'
-}
-
-const getPlatformLogo = (platformName) => {
-  return logoMap[platformName] || '/default.png'
-}
-
 
 // 마운트 시 데이터 요청
 onMounted(() => {
