@@ -287,6 +287,25 @@ const proceedToNext = async () => {
     // 구독 생성 API 호출
     const response = await axios.post('http://localhost:8080/post/subscription/create', subscriptionData)
     
+    // 구독 생성 성공 후 채팅방 생성
+    try {
+      const chatRoomData = {
+        postId: response.data, // 서버에서 Long 타입으로 직접 반환하는 구독 ID
+        roomName: serviceInfo.value.name,
+        maxMembers: selectedSlots.value + 1 // 파티장 포함 총 인원
+      }
+      
+      console.log('🚀 채팅방 생성 API 호출:', chatRoomData)
+      
+      await axios.post('http://localhost:8080/room/group/create', chatRoomData)
+      console.log('✅ 채팅방 생성 성공')
+      
+    } catch (chatError) {
+      console.error('💥 채팅방 생성 실패:', chatError)
+      // 채팅방 생성 실패해도 구독은 성공했으므로 경고 메시지만 표시
+      message.warning('구독은 생성되었지만 채팅방 생성에 실패했습니다.')
+    }
+    
     console.log('✅ 구독 생성 성공:', response.data)
     message.success(`${serviceInfo.value.name} 구독이 성공적으로 생성되었습니다!`)
 
