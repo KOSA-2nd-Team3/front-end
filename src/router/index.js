@@ -69,6 +69,12 @@ const router = createRouter({
             name: 'subscription-create',
             component: () => import('@/views/SubscriptionCreateView.vue'),
             meta: {requiresAuth: true}
+        },
+        {
+            path: '/platform/:id',
+            name: 'platform-list',
+            component: () => import('@/views/PlatformListView.vue'),
+            meta: {requiresAuth: true}
         }
     ],
 })

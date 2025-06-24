@@ -73,6 +73,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 import {
   PlayCircleOutlined,
@@ -87,6 +88,7 @@ import {
 
 // 반응형 데이터
 const activeCategory = ref('all')
+const router = useRouter()
 
 // 카테고리 데이터
 const categories = ref([
@@ -137,7 +139,9 @@ const setActiveCategory = (category) => {
 }
 
 const handleServiceClick = (service) => {
-  message.success(`${service.name} 서비스 상세페이지로 이동합니다.`)
+  // 플랫폼 이름을 URL에 맞게 변환 (한글 -> 영문 또는 ID)
+  const platformId = service.platformId || service.platformName.toLowerCase().replace(/\s+/g, '-')
+  router.push(`/platform/${platformId}`)
 }
 
 const getTagColor = (tag) => {
