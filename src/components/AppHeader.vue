@@ -139,6 +139,9 @@
       case 'community':
         router.push('/community')
         break
+      case 'subscription':
+        router.push('/community')
+        break
     }
   }
 
@@ -148,7 +151,7 @@
   }
 
   const handleSubscribeShare = () => {
-    emit('subscribe-share')
+    router.push('/subscription')
   }
 
   const handleLogout = async () => {

@@ -120,7 +120,7 @@ const fetchPlatforms = async () => {
     loading.value = true
     console.log('🚀 플랫폼 목록 API 호출 중...')
 
-    const response = await axios.get('/api/subscription', {
+    const response = await axios.get('/api/list/subscription', {
 
     })
     console.log('📡 API 응답:', response.data)
