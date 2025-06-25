@@ -121,6 +121,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { message } from 'ant-design-vue'
 import axios from 'axios'
 import { 
@@ -133,7 +134,8 @@ import {
 
 const route = useRoute()
 const router = useRouter()
-
+const authStore = useAuthStore()
+const loginId = computed(() => authStore.userInfo?.loginId)
 // 플랫폼 정보
 const platformName = ref('Wave(웨이브)')
 const platformPrice = ref(13500)
@@ -181,7 +183,7 @@ const fetchParties = async () => {
 }
 
 // 파티 참여
-const joinParty = (party) => {
+const joinParty = async (party) => {
   if (party.isExpired === 'true') {
     message.warning('만료된 파티입니다.')
     return
@@ -190,7 +192,13 @@ const joinParty = (party) => {
     message.warning('이미 마감된 파티입니다.')
     return
   }
-  message.success(`${party.leaderName}님의 파티에 참여 요청을 보냈습니다!`)
+
+  await axios.post('http://localhost:8080/post/joinParty', {
+      postId: party.postId,
+      loginId: loginId.value,
+      isOwner: "N"
+    });
+  message.success(`${party.leaderName}님의 파티에 참여했습니다!`)
   // TODO: 실제 참여 API 호출
 }
 

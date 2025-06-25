@@ -28,7 +28,8 @@
                   :min="1"
                   :max="12"
                   :marks="durationMarks"
-                  class="duration-slider readonly-slider"
+                  :disabled="serviceData.status === '파티원'"
+                  @afterChange="onDurationChange"
                 />
               </div>
 
@@ -62,13 +63,13 @@
                   </div>
 
                   <!-- 빈 슬롯들 (예약됨, 무료 등) -->
-                  <div v-for="slot in emptySlots" :key="slot.id" class="member-item empty-slot clickable" @click="handleSlotAction(slot)">
+                  <div v-for="slot in emptySlots" :key="slot.id" class="member-item empty-slot">
                     <div class="slot-icon">
                       <component :is="slot.icon" class="slot-icon-inner" />
                     </div>
                     <div class="slot-info">
                       <span class="slot-title">{{ slot.title }}</span>
-                      <span class="slot-description">{{ slot.description }} <RightOutlined /></span>
+                      <span class="slot-description">{{ slot.description }}</span>
                     </div>
                   </div>
                 </div>  
@@ -129,13 +130,14 @@
                 </div>
 
                 <!-- 버튼 영역 -->
-                <div v-if="!isEditing">
+                
+                <div v-if="!isEditing && isLeader">
                   <a-button type="default" block class="account-edit-btn" @click="editAccountInfo">
                     <EditOutlined /> 계정 정보 수정
                   </a-button>
                 </div>
 
-                <div v-else class="edit-buttons">
+                <div v-else-if="isEditing" class="edit-buttons">
                   <a-button type="primary" class="save-btn" @click="saveAccountInfo">
                     <SaveOutlined /> 저장
                   </a-button>
@@ -194,10 +196,10 @@ const route = useRoute()
 const authStore = useAuthStore()
 const loginId = computed(() => authStore.userInfo?.loginId)
 const postId = route.params.id;
-
+const afterChangeLock = ref(false);
 // 편집 모드 상태 추가
 const isEditing = ref(false)
-
+const isLeader = computed(() => serviceData.value.status === '파티장')
 // 편집용 임시 데이터
 const editingAccount = reactive({
   email: '',
@@ -256,7 +258,7 @@ onMounted(async () => {
       maxMembers: item.partySize,
       email: item.hostId,
       password : item.hostPwd,
-      status: item.isExpired === 'true' ? '만료됨'
+      status: item.isExpired === 'Y' ? '만료됨'
         : (item.isOwner === 'Y' ? '파티장' : '파티원'),
       category: item.isExpired === 'true' ? 'expired' : 'activity',
       type: item.isOwner === 'Y' ? 'sharing' : 'my'
@@ -264,6 +266,8 @@ onMounted(async () => {
 
     editingAccount.email = serviceData.value.email
     editingAccount.password = serviceData.value.password
+    durationMonth.value = item.durationMonth;
+    originalDuration.value = item.durationMonth;
 
     members.value = item.members.map((member) => ({
         id: member.memberId,
@@ -283,6 +287,33 @@ onMounted(async () => {
 
 // 멤버 목록 (파티장만)
 const members = ref([])
+const originalDuration = ref(durationMonth.value);
+const onDurationChange = (value) => {
+   if (afterChangeLock.value) return; 
+
+  afterChangeLock.value = true;
+  setTimeout(() => {
+    afterChangeLock.value = false;
+  }, 300);
+  Modal.confirm({
+    title: '구독 기간을 변경하시겠습니까?',
+    content: `${originalDuration.value}개월 → ${value}개월`,
+    okText: '네',
+    cancelText: '아니오',
+    async onOk() {
+      await axios.post('http://localhost:8080/post/update', {
+      postId: postId,
+      loginId: loginId.value,
+      durationMonth : value
+    });
+      message.success('구독 기간이 변경되었습니다.');
+      originalDuration.value = value;
+    },
+    onCancel() {
+      durationMonth.value = originalDuration.value; // 원래 값으로 복원
+    }
+  });
+}
 
 const editAccountInfo = () => {
   isEditing.value = true
@@ -354,7 +385,7 @@ const emptySlots = computed(() => {
       id: `free-${i + 1}`,
       title: '무료',
       description: '가입 대기 중',
-      icon: 'UserOutlined',
+      // icon: 'UserOutlined',
       type: 'free'
     })
   }

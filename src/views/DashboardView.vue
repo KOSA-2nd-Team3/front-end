@@ -144,9 +144,9 @@ onMounted(async () => {
       description: item.description, // description도 있으면 추가
       current: item.currentCount,
       total: item.partySize,
-      status: item.isExpired === 'true' ? '만료됨' : (item.isOwner === 'Y' ? '파티장' : '파티원'),
+      status: item.isExpired === 'Y' ? '만료됨' : (item.isOwner === 'Y' ? '파티장' : '파티원'),
       icon: item.iconUrl, // 서버에 iconUrl 필드가 있어야 함
-      expired: item.isExpired === 'true' ? 'expired' : 'activity',
+      expired: item.isExpired === 'Y' ? 'expired' : 'activity',
       type: item.isOwner === 'Y' ? 'sharing' : 'my'
     }))
     console.log('구독 데이터 불러옴', services.value)
