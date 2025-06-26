@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard-container">
-    <!-- 메인 대시보드 콘텐츠 -->
     <div class="dashboard-content">
       <div class="content-container">
         <!-- 메인 탭 섹션 -->
@@ -41,7 +40,7 @@
                 @click="setFilter('activity')"
                 class="filter-tab"
               >
-                활동적인({{ getActiveCount() }})
+                활동적인({{ totalActiveCount }})
               </a-button>
               <a-button
                 :class="{ 'active-filter': activeFilter === 'expired' }"
@@ -100,143 +99,116 @@
                       block
                       class="join-button"
                       @click="joinService(service)"
-                      :disabled="service.expired == 'expired'"
+                      :disabled="service.expired === 'expired'"
                     >
-                     구독 관리 >
+                      구독 관리 >
                     </a-button>
                   </div>
                 </div>
               </a-col>
             </a-row>
+            <!-- 페이징 네비게이션 -->
+            <div class="pagination">
+              <a-button
+                v-for="pageNum in totalPages"
+                :key="pageNum"
+                @click="changePage(pageNum-1)"
+                :class="{ 'active-page': currentPage === pageNum-1 }"
+              >
+                {{ pageNum }}
+              </a-button>
+            </div>
           </div>
         </div>
       </div>
-    </div>  
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { message } from 'ant-design-vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ClockCircleOutlined } from '@ant-design/icons-vue'
 import axios from 'axios'
 
 // 탭 및 필터 상태
 const activeMainTab = ref('all')
 const activeFilter = ref('activity')
+const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
 const services = ref([])
+const currentPage = ref(0) // 현재 페이지 번호(0부터)
+const totalPages = ref(0)  // 전체 페이지 수
 const loginId = computed(() => authStore.userInfo?.loginId)
 console.log('loginId:', loginId.value)
+const totalActiveCount = ref(0);
 
-onMounted(async () => {
+// 데이터 조회 함수
+const fetchMyPost = async (pageNum) => {
   try {
-    const response = await axios.get('http://localhost:8080/post/myPost', { params: { loginId: loginId.value } })
-    services.value = response.data.content.map((item) => ({
+    const response = await axios.get('http://localhost:8080/post/myPost', {
+      params: {
+        loginId: loginId.value,
+        page: pageNum // 파라미터 이름을 page로!
+      }
+    })
+    totalPages.value = response.data.totalPages
+    const dataContent = response.data.content
+    services.value = dataContent.map((item) => ({
       id: item.postId,
       name: item.platformName,
       price: item.price,
       period: '월',
-      description: item.description, // description도 있으면 추가
+      description: item.description || '',
       current: item.currentCount,
       total: item.partySize,
+<<<<<<< feat/dashboard
+      status: item.isExpired === 'true' ? '만료됨' : (item.isOwner === 'Y' ? '파티장' : '파티원'),
+      icon: item.iconUrl || '',
+      expired: item.isExpired === 'true' ? 'expired' : 'activity',
+=======
       status: item.isExpired === 'Y' ? '만료됨' : (item.isOwner === 'Y' ? '파티장' : '파티원'),
       icon: item.iconUrl, // 서버에 iconUrl 필드가 있어야 함
       expired: item.isExpired === 'Y' ? 'expired' : 'activity',
+>>>>>>> dev
       type: item.isOwner === 'Y' ? 'sharing' : 'my'
     }))
     console.log('구독 데이터 불러옴', services.value)
   } catch (error) {
     console.error('구독 데이터 요청 실패:', error)
   }
+}
+
+// 페이지 변경 핸들러
+const changePage = (newPage) => {
+  currentPage.value = newPage
+  router.replace({ query: { ...route.query, page: newPage + 1 } })
+  fetchMyPost(newPage)
+}
+
+// 쿼리 변경 감지
+watch(
+  () => route.query.page,
+  async (newPage) => {
+    if (newPage != null) {
+      currentPage.value = Number(newPage) - 1
+      await fetchMyPost(currentPage.value)
+    }
+  },
+  { immediate: true }
+)
+
+// 최초 마운트 시 쿼리 반영
+onMounted(async () => {
+  const page = route.query.page ? Number(route.query.page) - 1 : 0
+  currentPage.value = page
+  await fetchMyPost(page)
+  await getActiveCount()
 })
-
-
-// 서비스 데이터
-// const services = ref([
-//   {
-//     id: 1,
-//     name: 'Apple TV+ 가족',
-//     price: 2000,
-//     period: '개월',
-//     description: '구독이 승자가 있습니다.',
-//     current: 1,
-//     total: 6,
-//     status: '파티장',
-//     icon: 'https://logos-world.net/wp-content/uploads/2021/08/Apple-TV-Logo.png',
-//     expired: 'activity',
-//     type: 'sharing' // 'sharing', 'my', 'all'
-//   },
-//   {
-//     id: 2,
-//     name: 'Ridibooks(리디북스) 월간',
-//     price: 1495,
-//     period: '개월',
-//     description: '구독이 승자가 있습니다.',
-//     current: 1,
-//     total: 5,
-//     status: '파티장',
-//     icon: 'https://play-lh.googleusercontent.com/Y8Rn-oa_h2w8LT1zYfDQ1Z8X6dHVZLKfXUoHgSQTFWjBdQl3l7s_VoQ9H8b4Q8oGqQ',
-//     expired: 'activity',
-//     type: 'sharing'
-//   },
-//   {
-//     id: 3,
-//     name: 'MAX 광고 없음',
-//     price: 7059,
-//     period: '개월',
-//     description: '구독이 승자가 있습니다.',
-//     current: 1,
-//     total: 3,
-//     status: '파티장',
-//     icon: 'https://logos-world.net/wp-content/uploads/2022/01/HBO-Max-Logo.png',
-//     expired: 'activity',
-//     type: 'sharing'
-//   },
-//   {
-//     id: 4,
-//     name: 'Netflix 프리미엄',
-//     price: 4500,
-//     period: '개월',
-//     description: '구독이 승자가 있습니다.',
-//     current: 1,
-//     total: 5,
-//     status: '파티원',
-//     icon: 'https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2023.ico',
-//     expired: 'activity',
-//     type: 'my'
-//   },
-//   {
-//     id: 5,
-//     name: 'Disney+ Premium',
-//     price: 3200,
-//     period: '개월',
-//     description: '구독이 만료되었습니다.',
-//     current: 2,
-//     total: 4,
-//     status: '만료됨',
-//     icon: 'https://cnbl-cdn.bamgrid.com/assets/7ecc8bcb60ad77193058d63e321bd21cbac2fc67281dbd9353990c0f2b8fe874/original',
-//     expired: 'expired',
-//     type: 'my'
-//   },
-//   {
-//     id: 6,
-//     name: 'Spotify Premium',
-//     price: 2800,
-//     period: '개월',
-//     description: '구독이 만료되었습니다.',
-//     current: 3,
-//     total: 6,
-//     status: '만료됨',
-//     icon: 'https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_CMYK_Green.png',
-//     expired: 'expired',
-//     type: 'sharing'
-//   }
-// ])
 
 // 필터링된 서비스
 const filteredServices = computed(() => {
@@ -256,15 +228,16 @@ const filteredServices = computed(() => {
   return filtered
 })
 
-// 카운트 함수들
-const getActiveCount = () => {
-  let filtered = services.value
-  if (activeMainTab.value === 'sharing') {
-    filtered = filtered.filter(service => service.type === 'sharing')
-  } else if (activeMainTab.value === 'my') {
-    filtered = filtered.filter(service => service.type === 'my')
+// 카운트 함수
+const getActiveCount = async () => {
+  try {
+    const response = await axios.get('http://localhost:8080/post/myPost/active', {
+    });
+    totalActiveCount.value = response.data;
+  } catch (error) {
+    console.error('활성 개수 조회 실패:', error);
+    totalActiveCount.value = 0;
   }
-  return filtered.filter(service => service.expired === 'activity').length
 }
 
 const getExpiredCount = () => {
@@ -294,10 +267,10 @@ const joinService = (service) => {
   //   return
   // }
   router.push(`/dashboard/${service.id}`)
-  console.log(logind);
   message.success(`${service.name} 구독에 참여했습니다!`)
 }
 </script>
+
 
 <style scoped>
 .dashboard-container {
@@ -533,6 +506,26 @@ const joinService = (service) => {
   background: #f5f5f5;
   border-color: #d9d9d9;
   color: #bfbfbf;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  gap: 8px;
+}
+.pagination button {
+  min-width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid #d9d9d9;
+  background: white;
+  cursor: pointer;
+}
+.pagination button.active-page {
+  background: #1890ff;
+  color: white;
+  border-color: #1890ff;
 }
 
 /* 반응형 디자인 */
