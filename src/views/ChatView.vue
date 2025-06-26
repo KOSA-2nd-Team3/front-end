@@ -125,6 +125,7 @@ import SockJS from 'sockjs-client'
 import Stomp from 'webstomp-client'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { useRoute, useRouter } from 'vue-router'
 
 // 반응형 데이터
 const chatRooms = ref([])
@@ -143,6 +144,10 @@ const senderLoginId = ref(null)
 const messageBox = ref(null)
 const roomMembers = ref([])
 const membersLoading = ref(false)
+
+// route, router 추가
+const route = useRoute()
+const router = useRouter()
 
 // computed
 const selectedRoom = computed(() => {
@@ -182,7 +187,18 @@ onMounted(async () => {
     senderLoginId.value = null
   }
 
-  fetchChatRooms()
+  await fetchChatRooms()
+
+  // URL 파라미터로 특정 채팅방 선택
+  const roomIdFromUrl = route.params.roomId
+  if (roomIdFromUrl) {
+    // 채팅방 목록이 로드된 후 해당 채팅방 자동 선택
+    const roomIdNumber = parseInt(roomIdFromUrl)
+    const targetRoom = chatRooms.value.find(room => room.roomId == roomIdNumber)
+    if (targetRoom) {
+      await selectRoom(targetRoom)
+    }
+  }
 
   // 브라우저 이벤트 등록
   window.addEventListener('beforeunload', handleBeforeUnload)
@@ -265,6 +281,12 @@ const selectRoom = async (room) => {
   messages.value = []
   messagesError.value = null
   roomMembers.value = []
+  
+  // URL 변경 (roomId 사용)
+  const targetPath = `/chat/${room.roomId}`
+  if (route.path !== targetPath) {
+    router.replace(targetPath)
+  }
   
   // 메시지와 멤버 병렬 조회
   await Promise.all([
