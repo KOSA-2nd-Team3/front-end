@@ -2,7 +2,7 @@
   <div class="platform-list-container">
     <div class="platform-content">
       <div class="content-container">
-        
+
         <!-- 플랫폼 헤더 섹션 -->
         <div class="platform-header-section">
           <div class="platform-header-container">
@@ -61,10 +61,20 @@
           </div>
         </div>
 
+        <!-- 필터 섹션 추가 -->
+        <div class="filter-section">
+          <div class="filter-button" :class="filter === 'newest' ? 'selected' : ''" @click="setFilter('newest')">
+            최신순
+          </div>
+
+          <div class="filter-button" :class="filter === 'oldest' ? 'selected' : ''" @click="setFilter('oldest')">
+            오랜된순
+          </div>
+        </div>
 
         <!-- 사용자 카드 섹션 -->
         <div v-if = "partySize" class="users-section">
-          <div class="users-container">
+          <div class="users-container" ref="scrollContainer">
             <a-row :gutter="[24, 24]" justify="start">
               <a-col :xs="24" :sm="12" :lg="8" v-for="party in parties" :key="party.postId">
                 <div class="user-card">
@@ -77,6 +87,7 @@
                     <div class="user-info">
                       <h3 class="user-name">{{ party.leaderName }}</h3>
                       <p class="user-plan">{{ party.platformName }} {{ party.monthUnit }}개월</p>
+                      <p class="registration-time">{{ getTimeAgo(party.createdAt) }}</p>
                     </div>
                   </div>
 
@@ -87,11 +98,8 @@
                     </div>
                     <div class="member-row">
                       <div class="member-icons">
-                        <UserOutlined 
-                          v-for="n in party.partySize" 
-                          :key="n" 
-                          :class="n <= party.currentCount ? 'member-icon-filled' : 'member-icon-empty'"
-                        />
+                        <UserOutlined v-for="n in party.partySize" :key="n"
+                          :class="n <= party.currentCount ? 'member-icon-filled' : 'member-icon-empty'" />
                       </div>
                       <span class="member-text">{{ party.currentCount }}/{{ party.partySize }}명</span>
                     </div>
@@ -100,17 +108,19 @@
                   <div class="user-actions">
                     <a-button
                       :type="party.isExpired === 'false' && party.currentCount < party.partySize ? 'primary' : 'default'"
-                      block
-                      class="action-button"
+                      block class="action-button"
                       :disabled="party.isExpired === 'true' || party.currentCount >= party.partySize"
-                      @click="joinParty(party)"
-                    >
+                      @click="joinParty(party)">
                       {{ getButtonText(party) }}
                     </a-button>
                   </div>
                 </div>
               </a-col>
             </a-row>
+            <div v-if="!isLoading && !hasMore && sortedParties.length === 0" class="no-initial-parties">
+              <p>현재 이 플랫폼에 등록된 파티가 없습니다.</p>
+              <p>새 파티를 직접 생성해보세요!</p>
+            </div>
           </div>
         </div>
       </div>
@@ -119,7 +129,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { message } from 'ant-design-vue'
@@ -141,10 +151,36 @@ const partySize = computed(() => parties.value.length > 0)
 const platformName = ref('Wave(웨이브)')
 const platformPrice = ref(13500)
 
-
 // 파티 데이터
+const allParties = ref([])
 const parties = ref([])
+const page = ref(0)
+const itemsPerPage = 10
 
+const isLoading = ref(false)
+const hasMore = ref(true)
+const scrollContainer = ref(null)
+
+let loadingMessageHandle = null
+
+// 파티 정렬
+const filter = ref('newest')
+
+// computed로 필터링된 파티 목록 정렬
+const sortedParties = computed(() => {
+  if (!allParties.value || allParties.value.length === 0) {
+    return []
+  }
+  const sorted = [...allParties.value].sort((a, b) => {
+    if (filter.value === 'newest') {
+      return new Date(b.createdAt) - new Date(a.createdAt) // 최신순
+    } else if (filter.value === 'oldest') {
+      return new Date(a.createdAt) - new Date(b.createdAt) // 오랜된순
+    }
+    return 0
+  })
+  return sorted
+})
 
 // 뒤로가기
 const goBack = () => {
@@ -162,31 +198,77 @@ const calculateMemberPrice = (party) => {
   return memberPrice
 }
 
-// API로 파티 리스트 가져오기
-const fetchParties = async () => {
+// 로딩 메세지 표시
+const showLoadingMessage = () => {
+  return message.loading('파티 정보를 불러오는 중입니다...', 0)
+}
+
+const hideLoadingMessage = (handle) => {
+  if (handle) {
+    handle()
+  }
+}
+
+// 초기 데이터를 모두 로드
+const loadInitialData = async () => {
+  isLoading.value = true
+  loadingMessageHandle = showLoadingMessage()
+
   try {
-    const platformId = route.params.id
+    const platformId = route.params.id;
     const response = await axios.get(`http://localhost:8080/post/platform/${platformId}`)
-    parties.value = response.data
-    console.log('hello', parties.value.length)
-    // 첫 번째 파티의 정보로 플랫폼 정보 업데이트
-    if (parties.value.length > 0) {
-      const firstParty = parties.value[0]
+    allParties.value = response.data // 모든 원본 데이터 저장
+
+    if (allParties.value.length > 0) {
+      const firstParty = allParties.value[0]
       platformName.value = firstParty.platformName
       platformPrice.value = firstParty.platformPrice
+    } else {
+      hasMore.value = false
     }
-    else {
-      const null_response = await axios.get(`http://localhost:8080/post/platform/${platformId}/`)
-      platformName.value = null_response.data.platformName
-      platformPrice.value = null_response.data.platformPrice
-      console.log(platformName.value)
-      console.log(platformPrice.value)
-    }
-    
-    console.log('파티 리스트 불러옴:', parties.value)
   } catch (error) {
-    console.error('파티 리스트 요청 실패:', error)
-    message.error('파티 리스트를 불러오는데 실패했습니다.')
+    console.error('초기 파티 리스트 로드 실패:', error)
+    message.error('초기 파티 리스트를 불러오는데 실패했습니다.')
+    hasMore.value = false
+  } finally {
+    isLoading.value = false
+    hideLoadingMessage(loadingMessageHandle)
+    loadingMessageHandle = null
+  }
+}
+
+// 정렬된 데이터에 parties를 추가
+const appendPartiesFromSortedData = () => {
+  if (isLoading.value || !hasMore.value) return // 로딩 중이거나 더 이상 데이터 없으면 중복 호출 방지
+
+  isLoading.value = true
+  loadingMessageHandle = showLoadingMessage()
+
+  try {
+    const startIndex = page.value * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const newPartiesChunk = sortedParties.value.slice(startIndex, endIndex)
+
+    parties.value = [...parties.value, ...newPartiesChunk]
+
+    if (parties.value.length >= sortedParties.value.length) {
+      hasMore.value = false;
+      if (allParties.value.length > 0) {
+        message.info('모든 파티를 불러왔습니다.', 5)
+      }
+    } else {
+      hasMore.value = true
+    }
+    page.value++
+
+  } catch (error) {
+    console.error('파티 데이터 추가 실패:', error)
+    message.error('파티 데이터를 추가하는데 실패했습니다.')
+    hasMore.value = false
+  } finally {
+    isLoading.value = false
+    hideLoadingMessage(loadingMessageHandle)
+    loadingMessageHandle = null
   }
 }
 
@@ -237,9 +319,91 @@ const getButtonText = (party) => {
   return '가입하기'
 }
 
-onMounted(() => {
-  fetchParties()
+// 스크롤 이벤트 핸들러
+const handleScroll = () => {
+  if (scrollContainer.value) {
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainer.value
+
+    // 스크롤이 하단에 도달했는지 확인
+    const atBottom = scrollTop + clientHeight >= scrollHeight - 50
+
+    if (atBottom && !isLoading.value && hasMore.value) {
+      appendPartiesFromSortedData()
+    }
+  }
+}
+
+// 필터 상태를 변경
+const setFilter = (filterType) => {
+  if (filter.value === filterType) return
+  filter.value = filterType
+  
+  parties.value = []
+  page.value = 0
+  hasMore.value = true
+
+  appendPartiesFromSortedData()
+
+  if (scrollContainer.value) {
+    scrollContainer.value.scrollTop = 0
+  }
+}
+
+// 날짜 차이를 계산
+const getTimeAgo = (createdAt) => {
+  const createdDate = new Date(createdAt)
+  const currentDate = new Date()
+  const timeDiff = currentDate - createdDate // 밀리초 단위 차이
+
+  // 개월
+  const monthsAgo = currentDate.getMonth() - createdDate.getMonth() + (12 * (currentDate.getFullYear() - createdDate.getFullYear()));
+  if (monthsAgo > 0) {
+    return `${monthsAgo}개월 전`;
+  }
+
+  // 일
+  const daysAgo = Math.floor(timeDiff / (1000 * 3600 * 24)) // 밀리초를 일 단위로 변환
+  if (daysAgo > 0) {
+    return `${daysAgo}일 전`
+  }
+
+  // 시간
+  const hoursAgo = Math.floor(timeDiff / (1000 * 3600))  // 밀리초를 시간 단위로 변환
+  if (hoursAgo > 0) {
+    return `${hoursAgo}시간 전`
+  }
+
+  // 분
+  const minutesAgo = Math.floor(timeDiff / (1000 * 60)); // 밀리초를 분 단위로 변환
+  if (minutesAgo > 0) {
+    return `${minutesAgo}분 전`;
+  }
+  
+  return "방금 전"
+}
+
+onMounted(async () => {
+  await loadInitialData()
+  appendPartiesFromSortedData()
+
+  if (scrollContainer.value) {
+    scrollContainer.value.addEventListener('scroll', handleScroll)
+  } else {
+    console.warn('scrollContainer를 찾을 수 없습니다. Ref가 올바른 요소에 연결되었는지 확인하세요.');
+  }
 })
+
+onUnmounted(() => {
+  if (scrollContainer.value) {
+    scrollContainer.value.removeEventListener('scroll', handleScroll)
+  }
+  // 컴포넌트 언마운트 시 혹시 남아있는 로딩 메시지가 있다면 제거
+  if (loadingMessageHandle) {
+    hideLoadingMessage(loadingMessageHandle)
+    loadingMessageHandle = null
+  }
+})
+
 </script>
 
 <style scoped>
@@ -388,17 +552,19 @@ onMounted(() => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
-
 /* 사용자 섹션 */
 .users-section {
-  padding: 32px 0 64px;
+  padding: 10px 0 64px;
 }
 
 .users-container {
   padding: 0 40px;
+  overflow-y: auto;
+  max-height: 600px;
 }
 
 .user-card {
+  position: relative;
   background: white;
   border-radius: 16px;
   padding: 24px;
@@ -437,6 +603,18 @@ onMounted(() => {
   margin: 0;
   font-size: 14px;
   color: #666;
+}
+
+.registration-time {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 14px;
+  color: #888;
+  font-weight: 500;
+  background: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 8px;
 }
 
 .user-stats {
@@ -562,6 +740,87 @@ onMounted(() => {
   .ant-col-lg-8 {
     width: 33.333333% !important;
     flex: 0 0 33.333333% !important;
+  }
+}
+
+.no-initial-parties {
+  text-align: center;
+  padding: 30px 20px;
+  font-style: italic;
+  color: #888;
+  border-top: 1px dashed #e0e0e0;
+  margin-top: 20px;
+  font-size: 1.2em;
+  line-height: 1.6;
+  background: #fafafa;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: visible;
+  box-sizing: border-box;
+  padding-bottom: 40px;
+  margin-bottom: 20px;
+  max-height: none;
+}
+
+.no-initial-parties p {
+  margin-bottom: 10px;
+  font-weight: bold;
+    color: #888;
+}
+
+/* 필터 섹션 */
+.filter-section {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 0px;
+  padding: 20px 40px;
+}
+
+.filter-button {
+  width: 120px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  background-color: #f0f0f0;
+  color: #333333;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #f0f0f0;
+}
+
+.filter-button.selected {
+  background-color: #69b7ff;
+  color: white;
+  border-color: #69b7ff;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.filter-button:hover {
+  background-color: #69b7ff;
+  border-color: #69b7ff;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.filter-button.selected:hover {
+  background-color: #69b7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+  .filter-section {
+    flex-direction:  row;
+    align-items: center;
+  }
+
+  .filter-button {
+    width: 120px;
+    margin-bottom: 10px;
   }
 }
 </style>
