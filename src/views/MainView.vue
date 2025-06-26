@@ -50,7 +50,7 @@
 
                 <!-- 가격 -->
                 <div class="service-pricing">
-                  <div class="price-main">{{ Math.round(service.price / service.capacity).toLocaleString() }}원</div>
+                  <div class="price-main">{{ Math.floor(service.price / service.capacity).toLocaleString() }}원</div>
                   <div class="price-period">/ 월 최소</div>
                 </div>
 

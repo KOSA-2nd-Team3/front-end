@@ -260,7 +260,7 @@ onMounted(async () => {
       password : item.hostPwd,
       status: item.isExpired === 'Y' ? '만료됨'
         : (item.isOwner === 'Y' ? '파티장' : '파티원'),
-      category: item.isExpired === 'true' ? 'expired' : 'activity',
+      category: item.isExpired === 'Y' ? 'expired' : 'activity',
       type: item.isOwner === 'Y' ? 'sharing' : 'my'
     };
 
