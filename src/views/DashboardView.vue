@@ -222,13 +222,11 @@ const filteredServices = computed(() => {
   return filtered
 })
 
-// 카운트 함수들
+// 카운트 함수
 const getActiveCount = async () => {
   try {
     const response = await axios.get('http://localhost:8080/post/myPost/active', {
     });
-    console.log('활성 개수 응답:', response); // 전체 response 확인
-    console.log('활성 개수:', response.data); // 실제로 리턴되는 값 확인
     totalActiveCount.value = response.data;
   } catch (error) {
     console.error('활성 개수 조회 실패:', error);
