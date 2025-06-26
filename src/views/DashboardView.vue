@@ -166,16 +166,11 @@ const fetchMyPost = async (pageNum) => {
       description: item.description || '',
       current: item.currentCount,
       total: item.partySize,
-<<<<<<< feat/dashboard
-      status: item.isExpired === 'true' ? '만료됨' : (item.isOwner === 'Y' ? '파티장' : '파티원'),
-      icon: item.iconUrl || '',
-      expired: item.isExpired === 'true' ? 'expired' : 'activity',
-=======
       status: item.isExpired === 'Y' ? '만료됨' : (item.isOwner === 'Y' ? '파티장' : '파티원'),
       icon: item.iconUrl, // 서버에 iconUrl 필드가 있어야 함
       expired: item.isExpired === 'Y' ? 'expired' : 'activity',
->>>>>>> dev
-      type: item.isOwner === 'Y' ? 'sharing' : 'my'
+      type: item.isOwner === 'Y' ? 'sharing' : 'my',
+      platformImageUrl: item.platformImageUrl
     }))
     console.log('구독 데이터 불러옴', services.value)
   } catch (error) {

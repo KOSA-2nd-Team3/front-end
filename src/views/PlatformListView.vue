@@ -73,7 +73,7 @@
         </div>
 
         <!-- 사용자 카드 섹션 -->
-        <div v-if = "partySize" class="users-section">
+        <div class="users-section">
           <div class="users-container" ref="scrollContainer">
             <a-row :gutter="[24, 24]" justify="start">
               <a-col :xs="24" :sm="12" :lg="8" v-for="party in parties" :key="party.postId">
@@ -122,9 +122,9 @@
               <p>새 파티를 직접 생성해보세요!</p>
             </div>
           </div>
-        </div>
       </div>
     </div>
+  </div>
   </div>
 </template>
 
