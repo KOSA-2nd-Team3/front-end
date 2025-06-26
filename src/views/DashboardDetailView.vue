@@ -81,7 +81,7 @@
             <div class="right-section">
               <div class="service-header">
                 <div class="service-icon">
-                  <img :src="serviceData.icon" :alt="serviceData.name" />
+                  <img :src="serviceData.platformImageUrl" :alt="serviceData.name" />
                 </div>
                 <h2 class="service-name">{{ serviceData.name }}</h2>
               </div>
@@ -261,7 +261,8 @@ onMounted(async () => {
       status: item.isExpired === 'Y' ? '만료됨'
         : (item.isOwner === 'Y' ? '파티장' : '파티원'),
       category: item.isExpired === 'true' ? 'expired' : 'activity',
-      type: item.isOwner === 'Y' ? 'sharing' : 'my'
+      type: item.isOwner === 'Y' ? 'sharing' : 'my',
+      platformImageUrl: item.platformImageUrl
     };
 
     editingAccount.email = serviceData.value.email
@@ -456,9 +457,19 @@ const goBack = () => {
   router.go(-1)
 }
 
-const joinGroupChat = () => {
-  router.push(`/chat/${postId}`)
-  message.info('그룹 채팅에 참여했습니다.')
+const joinGroupChat = async () => {
+  try {
+    // postId로 roomId 찾기
+    const response = await axios.get(`http://localhost:8080/api/chat/room-by-post/${postId}`)
+    const roomId = response.data.chatRoomId
+    
+    // roomId로 ChatView 이동
+    router.push(`/chat/${roomId}`)
+    message.info('그룹 채팅에 참여했습니다.')
+  } catch (error) {
+    console.error('채팅방 접근 실패:', error)
+    message.error('채팅방에 접근할 수 없습니다.')
+  }
 }
 
 const stopSharing = () => {
