@@ -289,10 +289,10 @@ const setFilter = (filter) => {
 
 // 서비스 참여
 const joinService = (service) => {
-  if (service.current >= service.total) {
-    message.warning('이미 마감된 서비스입니다.')
-    return
-  }
+  // if (service.current >= service.total) {
+  //   message.warning('이미 마감된 서비스입니다.')
+  //   return
+  // }
   router.push(`/dashboard/${service.id}`)
   console.log(logind);
   message.success(`${service.name} 구독에 참여했습니다!`)

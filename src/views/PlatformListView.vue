@@ -63,7 +63,7 @@
 
 
         <!-- 사용자 카드 섹션 -->
-        <div class="users-section">
+        <div v-if = "partySize" class="users-section">
           <div class="users-container">
             <a-row :gutter="[24, 24]" justify="start">
               <a-col :xs="24" :sm="12" :lg="8" v-for="party in parties" :key="party.postId">
@@ -136,6 +136,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const loginId = computed(() => authStore.userInfo?.loginId)
+const partySize = computed(() => parties.value.length > 0)
 // 플랫폼 정보
 const platformName = ref('Wave(웨이브)')
 const platformPrice = ref(13500)
@@ -167,12 +168,19 @@ const fetchParties = async () => {
     const platformId = route.params.id
     const response = await axios.get(`http://localhost:8080/post/platform/${platformId}`)
     parties.value = response.data
-    
+    console.log('hello', parties.value.length)
     // 첫 번째 파티의 정보로 플랫폼 정보 업데이트
     if (parties.value.length > 0) {
       const firstParty = parties.value[0]
       platformName.value = firstParty.platformName
       platformPrice.value = firstParty.platformPrice
+    }
+    else {
+      const null_response = await axios.get(`http://localhost:8080/post/platform/${platformId}/`)
+      platformName.value = null_response.data.platformName
+      platformPrice.value = null_response.data.platformPrice
+      console.log(platformName.value)
+      console.log(platformPrice.value)
     }
     
     console.log('파티 리스트 불러옴:', parties.value)
@@ -198,7 +206,23 @@ const joinParty = async (party) => {
       loginId: loginId.value,
       isOwner: "N"
     });
-  message.success(`${party.leaderName}님의 파티에 참여했습니다!`)
+    party.currentCount += 1
+    message.success(`${party.leaderName}님의 파티에 참여했습니다!`)
+  if(party.currentCount == party.partySize){
+    const postId = party.postId
+    try{await axios.get(`http://localhost:8080/mailSend/${postId}`);}
+    catch(error){
+       console.error('메일 전송 실패:', error);
+    if (error.code === 'ECONNABORTED') {
+      message.error('메일 전송 요청이 너무 오래 걸립니다. 서버 상태를 확인하세요.');
+    } else if (!error.response) {
+      message.error('메일 전송 서버에 연결할 수 없습니다.');
+    } else {
+      message.error(error.response.data?.message || '메일 전송 중 알 수 없는 오류가 발생했습니다.');
+    }
+  }
+    message.success(`${party.leaderName}님이 파티를 참여!`)
+  }
   // TODO: 실제 참여 API 호출
 }
 
