@@ -5,7 +5,7 @@
     </a-layout-header>
 
     <a-layout style="height: calc(100vh - 64px);">
-      <a-layout-sider width="300" theme="light" style="border-right: 1px solid #eee;">
+      <a-layout-sider width="250" theme="light" style="border-right: 1px solid #eee;">
         <div style="padding:20px 16px; border-bottom:1px solid #eee;">
           <a-typography-title :level="4" style="margin:0;">
             채팅방
@@ -21,9 +21,12 @@
                 style="cursor:pointer; padding:16px;"
                 @click="selectRoom(room)"
             >
-              <div>
-                <div style="font-weight:500;">{{ room.serviceName }}</div>
-                <div style="color:#888; font-size:13px; margin-top:2px;">{{ room.createdAt }}</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <div>
+                  <div style="font-weight:500;">{{ room.serviceName }}</div>
+                  <div style="color:#888; font-size:13px; margin-top:2px;">{{ room.createdAt }}</div>
+                </div>
+                <a-badge v-if="room.unreadCount && room.unreadCount > 0" :count="room.unreadCount" size="small" />
               </div>
             </a-list-item>
           </div>
@@ -52,7 +55,8 @@
                   >
                     <div>
                       <b>{{ msg.senderLoginId }}</b>
-                      <span v-if="msg.leader === 'Y'" style="color:orange; font-size:13px; margin-left:4px;">(파티장)</span>
+                      <span v-if="msg.senderLoginId == selectedRoom.leaderId" style="color:orange; font-size:13px; margin-left:4px;">(파티장)</span>
+                      <span v-else style="color:#666; font-size:13px; margin-left:4px;">(파티원)</span>
                     </div>
                     <div style="padding:8px 16px; background:#f6f6f6; border-radius:8px; display:inline-block;">
                       {{ msg.message }}
@@ -83,6 +87,33 @@
             </a-typography-text>
           </div>
         </a-layout-content>
+        
+        <!-- 멤버 리스트 -->
+        <a-layout-sider v-if="selectedRoom" width="200" theme="light" style="border-left: 1px solid #eee;">
+          <div style="padding:16px; border-bottom:1px solid #eee;">
+            <a-typography-title :level="5" style="margin:0;">
+              멤버 ({{ roomMembers.length }})
+            </a-typography-title>
+          </div>
+          <a-spin :spinning="membersLoading">
+            <div v-if="roomMembers.length > 0" style="padding:8px;">
+              <div 
+                v-for="member in roomMembers" 
+                :key="member.loginId"
+                style="padding:8px 12px; border-radius:6px; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between;"
+              >
+                <div>
+                  <div style="font-weight:500; font-size:14px;">{{ member.loginId }}</div>
+                </div>
+                <a-tag v-if="member.isLeader" color="orange" size="small">파티장</a-tag>
+                <a-tag v-else color="blue" size="small">파티원</a-tag>
+              </div>
+            </div>
+            <div v-else-if="!membersLoading" style="padding:20px; text-align:center; color:#888;">
+              멤버가 없습니다.
+            </div>
+          </a-spin>
+        </a-layout-sider>
       </a-layout>
     </a-layout>
   </a-layout>
@@ -110,6 +141,8 @@ const connected = ref(false)
 const subscription = ref(null)
 const senderLoginId = ref(null)
 const messageBox = ref(null)
+const roomMembers = ref([])
+const membersLoading = ref(false)
 
 // computed
 const selectedRoom = computed(() => {
@@ -150,10 +183,23 @@ onMounted(async () => {
   }
 
   fetchChatRooms()
+
+  // 브라우저 이벤트 등록
+  window.addEventListener('beforeunload', handleBeforeUnload)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
-onBeforeUnmount(() => {
+onBeforeUnmount(async () => {
+  // 페이지 나갈 때 현재 채팅방 읽음 처리
+  if (selectedRoomId.value) {
+    await markAsRead(selectedRoomId.value)
+  }
+  
   disconnectWebSocket()
+  
+  // 브라우저 이벤트 해제
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 
 // 메서드들
@@ -182,13 +228,50 @@ const fetchChatMessages = async (roomId) => {
   }
 }
 
+const fetchRoomMembers = async (roomId) => {
+  membersLoading.value = true
+  try {
+    const res = await axios.get(`/api/chat/room/${roomId}/members`)
+    roomMembers.value = res.data
+  } catch (err) {
+    console.error('멤버 조회 실패:', err)
+    roomMembers.value = []
+  } finally {
+    membersLoading.value = false
+  }
+}
+
+const markAsRead = async (roomId) => {
+  try {
+    await axios.post(`http://localhost:8080/room/${roomId}/read`, {})
+    fetchChatRooms()
+  } catch (err) {
+    console.error('읽음 처리 실패:', err)
+  }
+}
+
 const selectRoom = async (room) => {
   if (selectedRoomId.value === room.roomId && connected.value) return
+
+  // 이전 채팅방 읽음 처리
+  if (selectedRoomId.value) {
+    await markAsRead(selectedRoomId.value)
+  }
+
+  // 이전 웹소켓 연결 해제
+  disconnectWebSocket()
 
   selectedRoomId.value = room.roomId
   messages.value = []
   messagesError.value = null
-  await fetchChatMessages(room.roomId)
+  roomMembers.value = []
+  
+  // 메시지와 멤버 병렬 조회
+  await Promise.all([
+    fetchChatMessages(room.roomId),
+    fetchRoomMembers(room.roomId)
+  ])
+  
   connectWebsocket(room.roomId)
 }
 
@@ -281,6 +364,54 @@ const scrollToBottom = () => {
       messageBox.value.scrollTop = messageBox.value.scrollHeight
     }
   })
+}
+
+// 브라우저 종료/탭 닫기 시 읽음 처리
+const handleBeforeUnload = (event) => {
+  if (selectedRoomId.value) {
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+      
+      // keepalive로 브라우저 종료 시에도 안전하게 전송
+      fetch(`${baseURL}/room/${selectedRoomId.value}/read`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({}),
+        keepalive: true,
+        credentials: 'include'
+      }).catch(() => {})
+    }
+  }
+}
+
+// 페이지 숨김 시 읽음 처리  
+const handleVisibilityChange = async () => {
+  if (document.hidden && selectedRoomId.value) {
+    // 페이지가 숨겨질 때 즉시 읽음 처리
+    try {
+      await markAsRead(selectedRoomId.value)
+    } catch (error) {
+      // 실패 시 fetch + keepalive로 재시도
+      const token = localStorage.getItem('accessToken')
+      if (token) {
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+        fetch(`${baseURL}/room/${selectedRoomId.value}/read`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({}),
+          keepalive: true,
+          credentials: 'include'
+        }).catch(() => {})
+      }
+    }
+  }
 }
 </script>
 
