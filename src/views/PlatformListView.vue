@@ -9,7 +9,7 @@
             <div class="back-button">
               <a-button @click="goBack" type="text" size="large">
                 <template #icon>
-                  <LeftOutlined />
+                  <LeftOutlined/>
                 </template>
               </a-button>
             </div>
@@ -19,19 +19,19 @@
             <div class="platform-actions">
               <a-button type="text" size="large">
                 <template #icon>
-                  <ShareAltOutlined />
+                  <ShareAltOutlined/>
                 </template>
                 공유
               </a-button>
               <a-button type="text" size="large">
                 <template #icon>
-                  <HeartOutlined />
+                  <HeartOutlined/>
                 </template>
                 찜목록
               </a-button>
               <a-button type="text" size="large">
                 <template #icon>
-                  <QuestionCircleOutlined />
+                  <QuestionCircleOutlined/>
                 </template>
                 FAQ
               </a-button>
@@ -53,7 +53,7 @@
                 </div>
               </div>
               <div class="banner-cta">
-                <a-button type="primary" size="large" class="join-button">
+                <a-button type="primary" size="large" class="join-button" @click="handleSubscribeShare">
                   가입하기
                 </a-button>
               </div>
@@ -99,7 +99,7 @@
                     <div class="member-row">
                       <div class="member-icons">
                         <UserOutlined v-for="n in party.partySize" :key="n"
-                          :class="n <= party.currentCount ? 'member-icon-filled' : 'member-icon-empty'" />
+                                      :class="n <= party.currentCount ? 'member-icon-filled' : 'member-icon-empty'"/>
                       </div>
                       <span class="member-text">{{ party.currentCount }}/{{ party.partySize }}명</span>
                     </div>
@@ -107,10 +107,10 @@
 
                   <div class="user-actions">
                     <a-button
-                      :type="party.isExpired === 'false' && party.currentCount < party.partySize ? 'primary' : 'default'"
-                      block class="action-button"
-                      :disabled="party.isExpired === 'true' || party.currentCount >= party.partySize"
-                      @click="joinParty(party)">
+                        :type="party.isExpired === 'false' && party.currentCount < party.partySize ? 'primary' : 'default'"
+                        block class="action-button"
+                        :disabled="party.isExpired === 'true' || party.currentCount >= party.partySize"
+                        @click="handleJoinParty(party)">
                       {{ getButtonText(party) }}
                     </a-button>
                   </div>
@@ -122,23 +122,23 @@
               <p>새 파티를 직접 생성해보세요!</p>
             </div>
           </div>
+        </div>
       </div>
     </div>
-  </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { message } from 'ant-design-vue'
+import {computed, onMounted, onUnmounted, ref} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import {useAuthStore} from '@/stores/auth'
+import {message} from 'ant-design-vue'
 import axios from 'axios'
-import { 
-  LeftOutlined, 
-  ShareAltOutlined, 
-  HeartOutlined, 
+import {
+  HeartOutlined,
+  LeftOutlined,
   QuestionCircleOutlined,
+  ShareAltOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
 
@@ -191,10 +191,10 @@ const goBack = () => {
 const calculateMemberPrice = (party) => {
   const totalPrice = party.platformPrice
   const partySize = party.partySize
-  
+
   // 파티원들이 내는 금액 (내림으로 계산)
   const memberPrice = Math.floor(totalPrice / partySize)
-  
+
   return memberPrice
 }
 
@@ -276,7 +276,8 @@ const appendPartiesFromSortedData = () => {
 }
 
 // 파티 참여
-const joinParty = async (party) => {
+// const joinParty = async (party) => {
+const handleJoinParty = async (party) => {
   if (party.isExpired === 'true') {
     message.warning('만료된 파티입니다.')
     return
@@ -285,30 +286,48 @@ const joinParty = async (party) => {
     message.warning('이미 마감된 파티입니다.')
     return
   }
-
-  await axios.post('http://localhost:8080/post/joinParty', {
+  try {
+    await axios.post('http://localhost:8080/post/joinParty', {
       postId: party.postId,
       loginId: loginId.value,
       isOwner: "N"
     });
+
     party.currentCount += 1
     message.success(`${party.leaderName}님의 파티에 참여했습니다!`)
-  if(party.currentCount == party.partySize){
-    const postId = party.postId
-    try{await axios.get(`http://localhost:8080/mailSend/${postId}`);}
-    catch(error){
-       console.error('메일 전송 실패:', error);
-    if (error.code === 'ECONNABORTED') {
-      message.error('메일 전송 요청이 너무 오래 걸립니다. 서버 상태를 확인하세요.');
-    } else if (!error.response) {
-      message.error('메일 전송 서버에 연결할 수 없습니다.');
-    } else {
-      message.error(error.response.data?.message || '메일 전송 중 알 수 없는 오류가 발생했습니다.');
+
+    try {
+      await axios.post(`http://localhost:8080/room/group/${party.postId}/join`)
+      message.success('채팅방에 참여했습니다.')
+    } catch (error) {
+      console.error('채팅방 참여 실패: ', error)
+      message.error('채팅방 참여에 실패했습니다.')
     }
+  } catch (partyError) {
+    console.error('파티 참여 실패:', partyError)
+    message.error('파티 참여에 실패했습니다.')
+    return
   }
+
+  if (party.currentCount == party.partySize) {
+    const postId = party.postId
+    try {
+      await axios.get(`http://localhost:8080/mailSend/${postId}`);
+    } catch (error) {
+      console.error('메일 전송 실패:', error);
+      if (error.code === 'ECONNABORTED') {
+        message.error('메일 전송 요청이 너무 오래 걸립니다. 서버 상태를 확인하세요.');
+      } else if (!error.response) {
+        message.error('메일 전송 서버에 연결할 수 없습니다.');
+      } else {
+        message.error(error.response.data?.message || '메일 전송 중 알 수 없는 오류가 발생했습니다.');
+      }
+    }
     message.success(`${party.leaderName}님이 파티를 참여!`)
   }
-  // TODO: 실제 참여 API 호출
+
+  // 대시보드 상세 페이지로 이동
+  router.push(`/dashboard/${party.postId}`)
 }
 
 // 버튼 텍스트
@@ -325,7 +344,7 @@ const getButtonText = (party) => {
 // 스크롤 이벤트 핸들러
 const handleScroll = () => {
   if (scrollContainer.value) {
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainer.value
+    const {scrollTop, scrollHeight, clientHeight} = scrollContainer.value
 
     // 스크롤이 하단에 도달했는지 확인
     const atBottom = scrollTop + clientHeight >= scrollHeight - 50
@@ -340,7 +359,7 @@ const handleScroll = () => {
 const setFilter = (filterType) => {
   if (filter.value === filterType) return
   filter.value = filterType
-  
+
   parties.value = []
   page.value = 0
   hasMore.value = true
@@ -381,7 +400,7 @@ const getTimeAgo = (createdAt) => {
   if (minutesAgo > 0) {
     return `${minutesAgo}분 전`;
   }
-  
+
   return "방금 전"
 }
 
@@ -768,7 +787,7 @@ onUnmounted(() => {
 .no-initial-parties p {
   margin-bottom: 10px;
   font-weight: bold;
-    color: #888;
+  color: #888;
 }
 
 /* 필터 섹션 */
@@ -817,7 +836,7 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .filter-section {
-    flex-direction:  row;
+    flex-direction: row;
     align-items: center;
   }
 
