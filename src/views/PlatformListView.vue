@@ -148,8 +148,8 @@ const authStore = useAuthStore()
 const loginId = computed(() => authStore.userInfo?.loginId)
 const partySize = computed(() => parties.value.length > 0)
 // 플랫폼 정보
-const platformName = ref('Wave(웨이브)')
-const platformPrice = ref(13500)
+const platformName = ref('0')
+const platformPrice = ref(0)
 
 // 파티 데이터
 const allParties = ref([])

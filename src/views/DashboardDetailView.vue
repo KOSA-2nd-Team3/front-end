@@ -2,7 +2,7 @@
   <div class="subscription-detail-container">
     <div class="detail-content">
       <div class="content-container">
-        
+
         <!-- 뒤로가기 버튼 -->
         <div class="back-section">
           <a-button type="text" @click="goBack" class="back-button">
@@ -13,31 +13,29 @@
         <!-- 서비스 상세 정보 -->
         <div class="service-detail-section">
           <div class="service-detail-container">
-            
+
             <!-- 왼쪽: 서비스 정보 및 입력 폼 -->
             <div class="left-section">
-              
+
               <!-- 구독 기간 설정 -->
               <div class="duration-section">
                 <div class="duration-header">
                   <h3>구독 기간:</h3>
                   <span class="duration-value">{{ durationMonth }}개월 </span>
                 </div>
-                <a-slider
-                  v-model:value="durationMonth"
-                  :min="1"
-                  :max="12"
-                  :marks="durationMarks"
-                  :disabled="serviceData.status === '파티원'"
-                  @afterChange="onDurationChange"
-                />
+                <a-slider v-model:value="durationMonth" :min="1" :max="12" :marks="durationMarks"
+                  :disabled="serviceData.status === '파티원'" @afterChange="onDurationChange" />
+                <div class="party-leader-change-info">
+                  변경 가능: <span class="change-count">{{ limitCount }}</span>회
+                </div>
               </div>
 
               <!-- 구독 가격 정보 -->
               <div class="price-info">
                 <div class="price-row">
                   <span class="price-label">슬롯당 구독 가격:</span>
-                  <span class="price-value">{{ Number(serviceData.price ?? 0).toLocaleString() }}원 <span class="price-period">/ 월</span></span>
+                  <span class="price-value">{{ Number(serviceData.price ?? 0).toLocaleString() }}원 <span
+                      class="price-period">/ 월</span></span>
                 </div>
               </div>
 
@@ -48,7 +46,7 @@
                   <span class="slot-count">{{ serviceData.currentMembers }}/{{ serviceData.maxMembers }}</span>
                   <span class="slot-label">공용 가입됨</span>
                 </div>
-                
+
                 <!-- 참여자 및 빈 슬롯 리스트 -->
                 <div class="members-list">
                   <!-- 실제 참여자들 -->
@@ -59,7 +57,8 @@
                     <span class="member-name">{{ member.name }}</span>
                     <a-tag v-if="member.isOwner" color="orange">{{ member.role }}</a-tag>
                     <div class="spacer"></div>
-                    <span class="member-joined">{{ member.role == '파티장' ? '생성' : '가입' }}/{{ formatDate(member.createdAt) }}</span>
+                    <span class="member-joined">{{ member.role == '파티장' ? '생성' : '가입' }}/{{ formatDate(member.createdAt)
+                      }}</span>
                   </div>
 
                   <!-- 빈 슬롯들 (예약됨, 무료 등) -->
@@ -72,7 +71,7 @@
                       <span class="slot-description">{{ slot.description }}</span>
                     </div>
                   </div>
-                </div>  
+                </div>
               </div>
 
             </div>
@@ -86,7 +85,7 @@
                 <h2 class="service-name">{{ serviceData.name }}</h2>
               </div>
 
-               <!-- 저장된 계정 정보 표시 -->
+              <!-- 저장된 계정 정보 표시 -->
               <div class="account-display">
                 <div class="account-group">
                   <!-- 일반 표시 모드 -->
@@ -130,7 +129,7 @@
                 </div>
 
                 <!-- 버튼 영역 -->
-                
+
                 <div v-if="!isEditing && isLeader">
                   <a-button type="default" block class="account-edit-btn" @click="editAccountInfo">
                     <EditOutlined /> 계정 정보 수정
@@ -149,23 +148,56 @@
 
               <!-- 액션 버튼들 -->
               <div class="action-buttons">
-                <a-button 
-                  type="default" 
-                  block 
-                  class="chat-button"
-                  @click="joinGroupChat"
-                >
+                <a-button type="default" block class="chat-button" @click="joinGroupChat">
                   그룹 채팅에 참여
                 </a-button>
 
-                <a-button 
-                  type="primary" 
-                  block 
-                  class="stop-sharing-btn"
-                  @click="serviceData.status === '파티장' ? stopSharing() : outSharing()"
-                >
-                   {{ serviceData.status == '파티장' ? '삭제' : '나가기' }} 
+                <!-- 시작 버튼 -->
+                <a-button type="primary" block class="start-btn" @click="startService">
+                  시작
                 </a-button>
+
+                <!-- 삭제/만료 버튼 -->
+                <a-button type="primary" block class="delete-btn"
+                  @click="serviceData.status === '파티장' ? stopSharing() : outSharing()">
+                  {{ serviceData.status == '파티장' ? '삭제' : '나가기' }}
+                </a-button>
+
+                <!-- 시작일/만료일 정보 표시 -->
+                <div class="date-info-container">
+                  <!-- 시작일 정보 -->
+                  <div class="date-info-card start-date">
+                    <div class="date-content">
+                      <div class="date-icon">d</div>
+                      <span class="date-label">시작일</span>
+                      <span class="date-value">{{ formatDate(members.createdAt) }}</span>
+                    </div>
+                  </div>
+
+                  <!-- 만료일 정보 -->
+                  <div v-if="remainingDays > 0" class="date-info-card expire-date active">
+                    <div class="date-content">
+                      <span class="date-label">만료까지</span>
+                      <div class="expire-info">
+                        <span class="expire-days">{{ remainingDays }}일</span>
+                        <span class="expire-text">남음</span>
+                      </div>
+                      <span class="expire-date-text">{{ formatDate(members.createdAt) }}</span>
+                    </div>
+                  </div>
+                  <div v-else-if="remainingDays === 0" class="date-info-card expire-date today">
+                    <div class="date-content">
+                      <span class="date-label">오늘 만료</span>
+                      <span class="expire-date-text">{{ formatDate(members.createdAt) }}</span>
+                    </div>
+                  </div>
+                  <div v-else class="date-info-card expire-date expired">
+                    <div class="date-content">
+                      <span class="date-label">{{ Math.abs(remainingDays) }}일 전 만료</span>
+                      <span class="expire-date-text">{{ formatDate(members.createdAt) }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
             </div>
@@ -182,11 +214,11 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { 
-  LeftOutlined, 
-  RightOutlined, 
-  MailOutlined, 
-  LockOutlined, 
+import {
+  LeftOutlined,
+  RightOutlined,
+  MailOutlined,
+  LockOutlined,
   UserOutlined,
   EditOutlined
 } from '@ant-design/icons-vue'
@@ -200,6 +232,7 @@ const afterChangeLock = ref(false);
 // 편집 모드 상태 추가
 const isEditing = ref(false)
 const isLeader = computed(() => serviceData.value.status === '파티장')
+const limitCount = ref(2);
 // 편집용 임시 데이터
 const editingAccount = reactive({
   email: '',
@@ -229,11 +262,11 @@ const reservedSlots = ref([
 // 서비스 데이터 - 예약된 슬롯도 포함해서 카운트
 const serviceData = ref({})
 
-  // id: 1,
-  // name: 'Peacock 플러스',
-  // price: 4469,
-  // icon: 'https://logos-world.net/wp-content/uploads/2021/08/Peacock-Logo.png',
-  // currentMembers: 1 + reservedSlots.value.length, // 파티장 1 + 예약됨 1 = 2
+// id: 1,
+// name: 'Peacock 플러스',
+// price: 4469,
+// icon: 'https://logos-world.net/wp-content/uploads/2021/08/Peacock-Logo.png',
+// currentMembers: 1 + reservedSlots.value.length, // 파티장 1 + 예약됨 1 = 2
 //})
 
 onMounted(async () => {
@@ -241,45 +274,48 @@ onMounted(async () => {
     const response = await axios.get(
       `http://localhost:8080/post/myPost/${postId}`, { params: { loginId: loginId.value } }
     );
-    const item = response.data; 
+    const item = response.data;
     console.log('item:', item);
-      if (!item) {
+    if (!item) {
       message.error('상세 데이터를 찾을 수 없습니다.');
       return; // 아래 코드 실행 중단
     }
     serviceData.value = {
       id: item.postId,
       name: item.platformName,
-      price:  item.price / item.partySize,
+      price: item.price / item.partySize,
       period: '개월',
       description: item.description,
       icon: item.iconUrl,
       currentMembers: item.currentCount + reservedSlots.value.length,
       maxMembers: item.partySize,
       email: item.hostId,
-      password : item.hostPwd,
+      password: item.hostPwd,
       status: item.isExpired === 'Y' ? '만료됨'
         : (item.isOwner === 'Y' ? '파티장' : '파티원'),
       category: item.isExpired === 'Y' ? 'expired' : 'activity',
       type: item.isOwner === 'Y' ? 'sharing' : 'my',
-      platformImageUrl: item.platformImageUrl
+      platformImageUrl: item.platformImageUrl,
+      limitCount : item.limitCount,
+      expirationDate : item.expirationDate
     };
 
     editingAccount.email = serviceData.value.email
     editingAccount.password = serviceData.value.password
-    durationMonth.value = item.durationMonth;
-    originalDuration.value = item.durationMonth;
+    durationMonth.value = item.durationMonth
+    originalDuration.value = item.durationMonth 
+    limitCount.value = item.limitCount  
+    console.log('console :', limitCount.value)
 
     members.value = item.members.map((member) => ({
-        id: member.memberId,
-        name: member.nickName,
-        color: '#52c41a',
-        isOwner: member.isOwner,
-        role: member.isOwner === 'Y' ? '파티장' : '파티원',
-        createdAt : member.createdAt
+      id: member.memberId,
+      name: member.nickName,
+      color: '#52c41a',
+      isOwner: member.isOwner,
+      role: member.isOwner === 'Y' ? '파티장' : '파티원',
+      createdAt: member.createdAt
     }));
-    durationMonth.value = item.durationMonth;
-    
+
     console.log('구독 데이터 불러옴', serviceData.value);
   } catch (error) {
     console.error('구독 데이터 요청 실패:', error);
@@ -290,7 +326,7 @@ onMounted(async () => {
 const members = ref([])
 const originalDuration = ref(durationMonth.value);
 const onDurationChange = (value) => {
-   if (afterChangeLock.value) return; 
+  if (afterChangeLock.value) return;
 
   afterChangeLock.value = true;
   setTimeout(() => {
@@ -303,12 +339,13 @@ const onDurationChange = (value) => {
     cancelText: '아니오',
     async onOk() {
       await axios.post('http://localhost:8080/post/update', {
-      postId: postId,
-      loginId: loginId.value,
-      durationMonth : value
-    });
+        postId: postId,
+        loginId: loginId.value,
+        durationMonth: value
+      });
       message.success('구독 기간이 변경되었습니다.');
       originalDuration.value = value;
+       
     },
     onCancel() {
       durationMonth.value = originalDuration.value; // 원래 값으로 복원
@@ -353,7 +390,7 @@ const saveAccountInfo = async () => {
     // 성공 시 serviceData 업데이트
     serviceData.value.email = editingAccount.email
     serviceData.value.password = editingAccount.password
-    
+
     isEditing.value = false
     message.success('계정 정보가 성공적으로 수정되었습니다.')
   } catch (error) {
@@ -367,7 +404,7 @@ const emptySlots = computed(() => {
   const totalOccupied = members.value.length + reservedSlots.value.length
   const remainingSlots = serviceData.value.maxMembers - totalOccupied
   const slots = []
-  
+
   // 예약된 슬롯들 추가
   reservedSlots.value.forEach((reservation) => {
     slots.push({
@@ -379,7 +416,7 @@ const emptySlots = computed(() => {
       reservationData: reservation
     })
   })
-  
+
   // 나머지 무료 슬롯들 추가
   for (let i = 0; i < remainingSlots; i++) {
     slots.push({
@@ -390,7 +427,7 @@ const emptySlots = computed(() => {
       type: 'free'
     })
   }
-  
+
   return slots
 })
 
@@ -435,21 +472,21 @@ const inviteFriend = () => {
     reservedAt: new Date(),
     status: 'reserved'
   }
-  
+
   reservedSlots.value.push(newReservation)
   serviceData.value.currentMembers = members.value.length + reservedSlots.value.length
-  
+
   message.success('친구 초대가 완료되었습니다. 슬롯이 예약되었습니다.')
 }
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
-  
+
   const date = new Date(dateString);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  
+
   return `${year}.${month}.${day}`;
 };
 
@@ -462,7 +499,7 @@ const joinGroupChat = async () => {
     // postId로 roomId 찾기
     const response = await axios.get(`http://localhost:8080/api/chat/room-by-post/${postId}`)
     const roomId = response.data.chatRoomId
-    
+
     // roomId로 ChatView 이동
     router.push(`/chat/${roomId}`)
     message.info('그룹 채팅에 참여했습니다.')
@@ -470,6 +507,10 @@ const joinGroupChat = async () => {
     console.error('채팅방 접근 실패:', error)
     message.error('채팅방에 접근할 수 없습니다.')
   }
+}
+
+const startService = async () =>{
+  
 }
 
 const stopSharing = () => {
@@ -485,7 +526,7 @@ const stopSharing = () => {
           loginId: loginId.value
         });
         message.success('파티가 삭제되었습니다.');
-        router.push('/dashboard'); 
+        router.push('/dashboard');
       } catch (e) {
         message.error('삭제에 실패했습니다.');
       }
@@ -506,7 +547,7 @@ const outSharing = () => {
           loginId: loginId.value
         });
         message.success('파티가 삭제되었습니다.');
-        router.push('/dashboard'); 
+        router.push('/dashboard');
       } catch (e) {
         message.error('삭제에 실패했습니다.');
       }
@@ -534,12 +575,15 @@ const outSharing = () => {
 }
 
 .readonly-slider {
-  pointer-events: none !important;  /* 클릭/드래그 완전 차단 */
-  user-select: none !important;     /* 텍스트 선택 차단 */
+  pointer-events: none !important;
+  /* 클릭/드래그 완전 차단 */
+  user-select: none !important;
+  /* 텍스트 선택 차단 */
 }
 
 .readonly-slider .ant-slider-handle {
-  cursor: default !important;       /* 커서 모양 일반으로 */
+  cursor: default !important;
+  /* 커서 모양 일반으로 */
 }
 
 /* 뒤로가기 섹션 */
@@ -580,6 +624,8 @@ const outSharing = () => {
 
 /* 구독 기간 섹션 */
 .duration-section {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 32px;
   padding: 24px;
   background: #f8f9ff;
@@ -611,6 +657,16 @@ const outSharing = () => {
   margin-top: 8px;
 }
 
+.party-leader-change-info {
+  margin-top: 5px;
+  font-size: 15px;
+  color: #666666;
+  font-weight: 600;
+   align-self: flex-end;
+}
+.change-count {
+  color: #1890ff;
+}
 /* 가격 정보 */
 .price-info {
   margin-bottom: 24px;
@@ -700,7 +756,7 @@ const outSharing = () => {
 }
 
 .spacer {
-  flex: 1; 
+  flex: 1;
 }
 
 .member-joined {
@@ -901,32 +957,151 @@ const outSharing = () => {
   margin-bottom: 24px;
 }
 
+/* 그룹 채팅 참여 버튼 */
 .chat-button {
   height: 44px;
   border-radius: 8px;
   font-weight: 600;
-  background: #ffc53d;
-  border-color: #ffc53d;
-  color: white;
+  background: #ff9500 !important;
+  border-color: #ff9500 !important;
+  color: white !important;
+  transition: all 0.3s ease;
 }
 
 .chat-button:hover {
-  background: #ffb300;
-  border-color: #ffb300;
+  background: #e6850e !important;
+  border-color: #e6850e !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3);
 }
 
-.stop-sharing-btn {
+/* 시작 버튼 */
+.start-btn {
   height: 44px;
   border-radius: 8px;
   font-weight: 600;
-  background: #ff7875;
-  border-color: #ff7875;
-  color: white;
+  background: #1890ff !important;
+  border-color: #1890ff !important;
+  color: white !important;
+  transition: all 0.3s ease;
 }
 
-.stop-sharing-btn:hover {
-  background: #ff9c99;
-  border-color: #ff9c99;
+.start-btn:hover {
+  background: #40a9ff !important;
+  border-color: #40a9ff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}
+
+/* 삭제 버튼 (한 줄로) */
+.delete-btn {
+  height: 44px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: #ff4d4f !important;
+  border-color: #ff4d4f !important;
+  color: white !important;
+  transition: all 0.3s ease;
+}
+
+.delete-btn:hover {
+  background: #ff7875 !important;
+  border-color: #ff7875 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3);
+}
+
+/* 날짜 정보 컨테이너 */
+.date-info-container {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 날짜 정보 카드 공통 스타일 */
+.date-info-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+/* 시작일 카드 */
+.date-info-card.start-date {
+  background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
+  border: 1px solid #69c0ff;
+  color: #0050b3;
+}
+
+/* 만료일 카드 - 활성 상태 */
+.date-info-card.expire-date.active {
+  background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%);
+  border: 1px solid #95de64;
+  color: #389e0d;
+}
+
+/* 만료일 카드 - 오늘 만료 */
+.date-info-card.expire-date.today {
+  background: linear-gradient(135deg, #fff7e6 0%, #ffd591 100%);
+  border: 1px solid #ffb84d;
+  color: #d46b08;
+}
+
+/* 만료일 카드 - 만료됨 */
+.date-info-card.expire-date.expired {
+  background: linear-gradient(135deg, #fff2f0 0%, #ffccc7 100%);
+  border: 1px solid #ff9c95;
+  color: #cf1322;
+}
+
+/* 날짜 아이콘 */
+.date-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* 날짜 내용 */
+.date-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.date-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.date-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* 만료 정보 */
+.expire-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.expire-days {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.expire-text {
+  font-size: 16px;
+}
+
+.expire-date-text {
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 /* 반응형 */
@@ -934,12 +1109,12 @@ const outSharing = () => {
   .service-detail-container {
     grid-template-columns: 1fr;
   }
-  
+
   .left-section {
     border-right: none;
     border-bottom: 1px solid #f0f0f0;
   }
-  
+
   .content-container {
     padding: 16px 20px;
   }
