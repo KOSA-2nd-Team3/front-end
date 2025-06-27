@@ -7,25 +7,18 @@
           <div class="main-tab-container">
             <div class="main-tabs">
               <a-button
-                :class="{ 'active-main-tab': activeMainTab === 'all' }"
-                @click="setMainTab('all')"
-                class="main-tab"
-              >
-                전부
-              </a-button>
-              <a-button
                 :class="{ 'active-main-tab': activeMainTab === 'sharing' }"
                 @click="setMainTab('sharing')"
                 class="main-tab"
               >
-                공유
+                파티장
               </a-button>
               <a-button
                 :class="{ 'active-main-tab': activeMainTab === 'my' }"
                 @click="setMainTab('my')"
                 class="main-tab"
               >
-                나의 구독
+                파티원
               </a-button>
             </div>
           </div>
@@ -47,7 +40,7 @@
                 @click="setFilter('expired')"
                 class="filter-tab"
               >
-                만료된({{ getExpiredCount() }})
+                만료된({{ totalExpiredCount }})
               </a-button>
             </div>
           </div>
@@ -134,31 +127,30 @@ import { ClockCircleOutlined } from '@ant-design/icons-vue'
 import axios from 'axios'
 
 // 탭 및 필터 상태
-const activeMainTab = ref('all')
+const activeMainTab = ref('sharing') // 기본: 파티장
 const activeFilter = ref('activity')
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const services = ref([])
-const currentPage = ref(0) // 현재 페이지 번호(0부터)
-const totalPages = ref(0)  // 전체 페이지 수
-const loginId = computed(() => authStore.userInfo?.loginId)
-console.log('loginId:', loginId.value)
-const totalActiveCount = ref(0);
+const services = ref([]) // 파티장(내가 쓴 글)
+const myPartyPosts = ref([]) // 파티원(내가 참여한 글)
+const currentPage = ref(0)
+const totalPages = ref(0)
+const myPartyPostsCurrentPage = ref(0)
+const myPartyPostsTotalPages = ref(0)
+const totalActiveCount = ref(0)
+const totalExpiredCount = ref(0)
 
 // 데이터 조회 함수
+// 1. 내가 쓴 글(파티장) 조회
 const fetchMyPost = async (pageNum) => {
   try {
     const response = await axios.get('http://localhost:8080/post/myPost', {
-      params: {
-        loginId: loginId.value,
-        page: pageNum // 파라미터 이름을 page로!
-      }
+      params: { page: pageNum }
     })
     totalPages.value = response.data.totalPages
-    const dataContent = response.data.content
-    services.value = dataContent.map((item) => ({
+    services.value = response.data.content.map(item => ({
       id: item.postId,
       name: item.platformName,
       price: item.price,
@@ -166,94 +158,113 @@ const fetchMyPost = async (pageNum) => {
       description: item.description || '',
       current: item.currentCount,
       total: item.partySize,
-      status: item.isExpired === 'Y' ? '만료됨' : (item.isOwner === 'Y' ? '파티장' : '파티원'),
-      icon: item.iconUrl, // 서버에 iconUrl 필드가 있어야 함
+      status: '파티장',
+      icon: item.iconUrl,
       expired: item.isExpired === 'Y' ? 'expired' : 'activity',
-      type: item.isOwner === 'Y' ? 'sharing' : 'my',
+      type: 'sharing',
       platformImageUrl: item.platformImageUrl
     }))
-    console.log('구독 데이터 불러옴', services.value)
   } catch (error) {
     console.error('구독 데이터 요청 실패:', error)
   }
 }
 
-// 페이지 변경 핸들러
-const changePage = (newPage) => {
-  currentPage.value = newPage
-  router.replace({ query: { ...route.query, page: newPage + 1 } })
-  fetchMyPost(newPage)
+// 2. 내가 참여한 글(파티원) 조회
+const fetchMyPartyPosts = async (pageNum = 0) => {
+  try {
+    const response = await axios.get('http://localhost:8080/post/myPost-join', {
+      params: { page: pageNum }
+    })
+    myPartyPostsTotalPages.value = response.data.totalPages
+    myPartyPosts.value = response.data.content.map(item => ({
+      id: item.postId,
+      name: item.platformName,
+      price: item.price,
+      period: '월',
+      description: item.description || '',
+      current: item.currentCount,
+      total: item.partySize,
+      status: '파티원',
+      icon: item.iconUrl,
+      expired: item.isExpired === 'Y' ? 'expired' : 'activity',
+      type: 'my',
+      platformImageUrl: item.platformImageUrl
+    }))
+  } catch (error) {
+    console.error('내가 참여한 파티 구독 데이터 요청 실패:', error)
+  }
 }
 
-// 쿼리 변경 감지
+// 3. 탭 전환 시 데이터 로딩
+const setMainTab = (tab) => {
+  activeMainTab.value = tab
+  if (tab === 'sharing') {
+    fetchMyPost(currentPage.value)
+  } else if (tab === 'my') {
+    fetchMyPartyPosts(myPartyPostsCurrentPage.value)
+  }
+}
+
+// 4. 페이징
+const changePage = (newPage) => {
+  if (activeMainTab.value === 'sharing') {
+    currentPage.value = newPage
+    fetchMyPost(newPage)
+  } else if (activeMainTab.value === 'my') {
+    myPartyPostsCurrentPage.value = newPage
+    fetchMyPartyPosts(newPage)
+  }
+}
+
+// 5. 필터링
+const filteredServices = computed(() => {
+  let filtered = activeMainTab.value === 'sharing' ? services.value : myPartyPosts.value
+  filtered = filtered.filter(service => service.expired === activeFilter.value)
+  return filtered
+})
+
+// 6. 활동/만료 카운트
+const getActiveCount = async () => {
+  try {
+    const response = await axios.get('http://localhost:8080/post/myPost/active')
+    totalActiveCount.value = response.data
+  } catch (error) {
+    totalActiveCount.value = 0
+  }
+}
+const getExpiredCountApi = async () => {
+  try {
+    const response = await axios.get('http://localhost:8080/post/myPost/expired')
+    totalExpiredCount.value = response.data
+  } catch (error) {
+    totalExpiredCount.value = 0
+  }
+}
+
+// 7. 필터 변경
+const setFilter = (filter) => {
+  activeFilter.value = filter
+}
+
+// 8. 마운트/초기화
+onMounted(async () => {
+  await fetchMyPost(0)
+  await fetchMyPartyPosts(0)
+  await getActiveCount()
+  await getExpiredCountApi()
+})
+
+// 라우터 쿼리 page 변화 감지(파티장 탭에서만)
 watch(
   () => route.query.page,
   async (newPage) => {
-    if (newPage != null) {
+    if (activeMainTab.value === 'sharing' && newPage != null) {
       currentPage.value = Number(newPage) - 1
       await fetchMyPost(currentPage.value)
     }
   },
   { immediate: true }
 )
-
-// 최초 마운트 시 쿼리 반영
-onMounted(async () => {
-  const page = route.query.page ? Number(route.query.page) - 1 : 0
-  currentPage.value = page
-  await fetchMyPost(page)
-  await getActiveCount()
-})
-
-// 필터링된 서비스
-const filteredServices = computed(() => {
-  let filtered = services.value
-
-  // 메인 탭 필터링
-  if (activeMainTab.value === 'sharing') {
-    filtered = filtered.filter(service => service.type === 'sharing')
-  } else if (activeMainTab.value === 'my') {
-    filtered = filtered.filter(service => service.type === 'my')
-  }
-  // 'all'인 경우 모든 타입 포함
-
-  // 서브 필터링
-  filtered = filtered.filter(service => service.expired === activeFilter.value)
-
-  return filtered
-})
-
-// 카운트 함수
-const getActiveCount = async () => {
-  try {
-    const response = await axios.get('http://localhost:8080/post/myPost/active', {
-    });
-    totalActiveCount.value = response.data;
-  } catch (error) {
-    console.error('활성 개수 조회 실패:', error);
-    totalActiveCount.value = 0;
-  }
-}
-
-const getExpiredCount = () => {
-  let filtered = services.value
-  if (activeMainTab.value === 'sharing') {
-    filtered = filtered.filter(service => service.type === 'sharing')
-  } else if (activeMainTab.value === 'my') {
-    filtered = filtered.filter(service => service.type === 'my')
-  }
-  return filtered.filter(service => service.expired === 'expired').length
-}
-
-// 탭 변경
-const setMainTab = (tab) => {
-  activeMainTab.value = tab
-}
-
-// 필터 변경
-const setFilter = (filter) => {
-  activeFilter.value = filter
-}
 
 // 서비스 참여
 const joinService = (service) => {
