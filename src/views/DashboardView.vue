@@ -5,44 +5,43 @@
         <!-- 메인 탭 섹션 -->
         <div class="main-tab-section">
           <div class="main-tab-container">
-            <div class="main-tabs">
-              <a-button
-                :class="{ 'active-main-tab': activeMainTab === 'sharing' }"
-                @click="setMainTab('sharing')"
-                class="main-tab"
-              >
-                파티장
-              </a-button>
-              <a-button
-                :class="{ 'active-main-tab': activeMainTab === 'my' }"
-                @click="setMainTab('my')"
-                class="main-tab"
-              >
-                파티원
-              </a-button>
+            <div class="dashboard-toolbar">
+              <div class="main-tabs">
+                <a-button
+                  class="filter-button"
+                  :class="{ 'active-main-tab': tabType === 'owner' }"
+                  @click="setTab('owner')"
+                >
+                  파티장
+                </a-button>
+                <a-button
+                  class="filter-button"
+                  :class="{ 'active-main-tab': tabType === 'member' }"
+                  @click="setTab('member')"
+                >
+                  파티원
+                </a-button>
+              </div>
+              <div class="filter-tabs">
+                <a-button
+                  :class="{ 'active-sort': sortBy === 'platformName' }"
+                  @click="toggleSort('platformName')"
+                  class="filter-tab"
+                >
+                  이름순
+                  <span v-if="sortBy === 'platformName'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                </a-button>
+                <a-button
+                  :class="{ 'active-sort': sortBy === 'createdAt' }"
+                  @click="toggleSort('createdAt')"
+                  class="filter-tab"
+                >
+                  최신순
+                  <span v-if="sortBy === 'createdAt'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                </a-button>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <!-- 서브 필터 섹션 -->
-        <div class="filter-section">
-          <div class="filter-container">
-            <div class="filter-tabs">
-              <a-button
-                :class="{ 'active-filter': activeFilter === 'activity' }"
-                @click="setFilter('activity')"
-                class="filter-tab"
-              >
-                활동적인({{ totalActiveCount }})
-              </a-button>
-              <a-button
-                :class="{ 'active-filter': activeFilter === 'expired' }"
-                @click="setFilter('expired')"
-                class="filter-tab"
-              >
-                만료된({{ totalExpiredCount }})
-              </a-button>
-            </div>
           </div>
         </div>
 
@@ -50,7 +49,7 @@
         <div class="services-section">
           <div class="services-container">
             <a-row :gutter="[32, 32]" justify="start">
-              <a-col :xs="24" :sm="12" :lg="8" v-for="service in filteredServices" :key="service.id">
+              <a-col :xs="24" :sm="12" :lg="8" v-for="service in filteredPosts" :key="service.id">
                 <div class="service-card">
                   <div class="service-header">
                     <div class="service-icon">
@@ -94,7 +93,7 @@
                       @click="joinService(service)"
                       :disabled="service.expired === 'expired'"
                     >
-                      구독 관리 >
+                      구독 관리 &gt;
                     </a-button>
                   </div>
                 </div>
@@ -119,38 +118,65 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { message } from 'ant-design-vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ClockCircleOutlined } from '@ant-design/icons-vue'
 import axios from 'axios'
 
-// 탭 및 필터 상태
-const activeMainTab = ref('sharing') // 기본: 파티장
-const activeFilter = ref('activity')
-const route = useRoute()
+// 상태 변수
+const sortBy = ref('createdAt')      // 'platformName' or 'createdAt'
+const sortOrder = ref('desc')        // 'asc' or 'desc'
+const tabType = ref('owner')         // 'owner' (파티장) / 'member' (파티원)
+const postsOwner = ref([])
+const postsMember = ref([])
+const currentPageOwner = ref(0)
+const currentPageMember = ref(0)
+const totalPagesOwner = ref(1)
+const totalPagesMember = ref(1)
 const router = useRouter()
-const authStore = useAuthStore()
 
-const services = ref([]) // 파티장(내가 쓴 글)
-const myPartyPosts = ref([]) // 파티원(내가 참여한 글)
-const currentPage = ref(0)
-const totalPages = ref(0)
-const myPartyPostsCurrentPage = ref(0)
-const myPartyPostsTotalPages = ref(0)
-const totalActiveCount = ref(0)
-const totalExpiredCount = ref(0)
+// 정렬 버튼 클릭 핸들러
+function toggleSort(type) {
+  if (sortBy.value === type) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortBy.value = type
+    sortOrder.value = 'desc'
+  }
+  fetchPosts()
+}
 
-// 데이터 조회 함수
-// 1. 내가 쓴 글(파티장) 조회
-const fetchMyPost = async (pageNum) => {
+// 탭 변경 핸들러
+function setTab(type) {
+  tabType.value = type
+  fetchPosts()
+}
+
+// 페이지 변경
+function changePage(newPage) {
+  if (tabType.value === 'owner') {
+    currentPageOwner.value = newPage
+  } else {
+    currentPageMember.value = newPage
+  }
+  fetchPosts()
+}
+
+// 데이터 조회 (탭/정렬/페이지 모두 반영)
+async function fetchPosts() {
+  const page = tabType.value === 'owner' ? currentPageOwner.value : currentPageMember.value
+  const apiUrl = tabType.value === 'owner'
+    ? 'http://localhost:8080/post/myPost'
+    : 'http://localhost:8080/post/myPost-join'
   try {
-    const response = await axios.get('http://localhost:8080/post/myPost', {
-      params: { page: pageNum }
+    const response = await axios.get(apiUrl, {
+      params: {
+        page,
+        sortField: sortBy.value,
+        sortDirection: sortOrder.value,
+      },
     })
-    totalPages.value = response.data.totalPages
-    services.value = response.data.content.map(item => ({
+    const posts = response.data.content.map(item => ({
       id: item.postId,
       name: item.platformName,
       price: item.price,
@@ -158,123 +184,43 @@ const fetchMyPost = async (pageNum) => {
       description: item.description || '',
       current: item.currentCount,
       total: item.partySize,
-      status: '파티장',
+      status: tabType.value === 'owner' ? '파티장' : '파티원',
       icon: item.iconUrl,
-      expired: item.isExpired === 'Y' ? 'expired' : 'activity',
-      type: 'sharing',
+      expired: item.isExpired === 'Y' ? 'expired' : 'active',
       platformImageUrl: item.platformImageUrl
     }))
-  } catch (error) {
-    console.error('구독 데이터 요청 실패:', error)
-  }
-}
-
-// 2. 내가 참여한 글(파티원) 조회
-const fetchMyPartyPosts = async (pageNum = 0) => {
-  try {
-    const response = await axios.get('http://localhost:8080/post/myPost-join', {
-      params: { page: pageNum }
-    })
-    myPartyPostsTotalPages.value = response.data.totalPages
-    myPartyPosts.value = response.data.content.map(item => ({
-      id: item.postId,
-      name: item.platformName,
-      price: item.price,
-      period: '월',
-      description: item.description || '',
-      current: item.currentCount,
-      total: item.partySize,
-      status: '파티원',
-      icon: item.iconUrl,
-      expired: item.isExpired === 'Y' ? 'expired' : 'activity',
-      type: 'my',
-      platformImageUrl: item.platformImageUrl
-    }))
-  } catch (error) {
-    console.error('내가 참여한 파티 구독 데이터 요청 실패:', error)
-  }
-}
-
-// 3. 탭 전환 시 데이터 로딩
-const setMainTab = (tab) => {
-  activeMainTab.value = tab
-  if (tab === 'sharing') {
-    fetchMyPost(currentPage.value)
-  } else if (tab === 'my') {
-    fetchMyPartyPosts(myPartyPostsCurrentPage.value)
-  }
-}
-
-// 4. 페이징
-const changePage = (newPage) => {
-  if (activeMainTab.value === 'sharing') {
-    currentPage.value = newPage
-    fetchMyPost(newPage)
-  } else if (activeMainTab.value === 'my') {
-    myPartyPostsCurrentPage.value = newPage
-    fetchMyPartyPosts(newPage)
-  }
-}
-
-// 5. 필터링
-const filteredServices = computed(() => {
-  let filtered = activeMainTab.value === 'sharing' ? services.value : myPartyPosts.value
-  filtered = filtered.filter(service => service.expired === activeFilter.value)
-  return filtered
-})
-
-// 6. 활동/만료 카운트
-const getActiveCount = async () => {
-  try {
-    const response = await axios.get('http://localhost:8080/post/myPost/active')
-    totalActiveCount.value = response.data
-  } catch (error) {
-    totalActiveCount.value = 0
-  }
-}
-const getExpiredCountApi = async () => {
-  try {
-    const response = await axios.get('http://localhost:8080/post/myPost/expired')
-    totalExpiredCount.value = response.data
-  } catch (error) {
-    totalExpiredCount.value = 0
-  }
-}
-
-// 7. 필터 변경
-const setFilter = (filter) => {
-  activeFilter.value = filter
-}
-
-// 8. 마운트/초기화
-onMounted(async () => {
-  await fetchMyPost(0)
-  await fetchMyPartyPosts(0)
-  await getActiveCount()
-  await getExpiredCountApi()
-})
-
-// 라우터 쿼리 page 변화 감지(파티장 탭에서만)
-watch(
-  () => route.query.page,
-  async (newPage) => {
-    if (activeMainTab.value === 'sharing' && newPage != null) {
-      currentPage.value = Number(newPage) - 1
-      await fetchMyPost(currentPage.value)
+    if (tabType.value === 'owner') {
+      postsOwner.value = posts
+      totalPagesOwner.value = response.data.totalPages
+    } else {
+      postsMember.value = posts
+      totalPagesMember.value = response.data.totalPages
     }
-  },
-  { immediate: true }
-)
+  } catch (e) {
+    // 에러 처리
+  }
+}
+
+// 실제 보여줄 리스트
+const filteredPosts = computed(() => {
+  return tabType.value === 'owner' ? postsOwner.value : postsMember.value
+})
+const totalPages = computed(() => {
+  return tabType.value === 'owner' ? totalPagesOwner.value : totalPagesMember.value
+})
+const currentPage = computed(() => {
+  return tabType.value === 'owner' ? currentPageOwner.value : currentPageMember.value
+})
 
 // 서비스 참여
 const joinService = (service) => {
-  // if (service.current >= service.total) {
-  //   message.warning('이미 마감된 서비스입니다.')
-  //   return
-  // }
-  router.push(`/dashboard/${service.id}`)
-  message.success(`${service.name} 구독에 참여했습니다!`)
+  router.push(`http://localhost:8080/dashboard/${service.id}`)
 }
+
+// 최초 로딩
+onMounted(() => {
+  fetchPosts()
+})
 </script>
 
 
@@ -310,21 +256,6 @@ const joinService = (service) => {
   gap: 8px;
 }
 
-.main-tab {
-  border: none;
-  background: transparent;
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-  padding: 8px 16px;
-  height: auto;
-  transition: all 0.3s ease;
-}
-
-.main-tab:hover {
-  color: #ff7875;
-}
-
 .active-main-tab {
   color: #ff7875 !important;
   /* border-bottom: 2px solid #ff7875 !important; */
@@ -343,6 +274,7 @@ const joinService = (service) => {
   padding: 0 40px;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 24px;
 }
 
@@ -365,12 +297,6 @@ const joinService = (service) => {
 .filter-tab:hover {
   border-color: #ff7875;
   color: #ff7875;
-}
-
-.active-filter {
-  background: #ff7875 !important;
-  border-color: #ff7875 !important;
-  color: white !important;
 }
 
 .services-section {
@@ -534,6 +460,56 @@ const joinService = (service) => {
   border-color: #1890ff;
 }
 
+.dashboard-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 40px 0 40px;
+  background: white;
+}
+
+.main-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-button {
+  width: 120px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  background-color: #f0f0f0;
+  color: #333333;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #f0f0f0;
+  margin-right: 8px;
+}
+
+.filter-button:hover {
+  background-color: #ff7875;
+  color: #fff;
+  border-color: #ff7875;
+}
+
+.active-main-tab {
+  background-color: #ff7875 !important;
+  color: #fff !important;
+  border-color: #ff7875 !important;
+}
+
 /* 반응형 디자인 */
 @media (max-width: 1200px) {
   .main-tab-container,
@@ -544,10 +520,10 @@ const joinService = (service) => {
 }
 
 @media (max-width: 768px) {
-  .main-tab-container,
-  .filter-container {
+  .dashboard-toolbar {
     flex-direction: column;
     align-items: flex-start;
+    justify-content: flex-start;
     gap: 16px;
     padding: 0 16px;
   }
