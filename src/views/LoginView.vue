@@ -169,11 +169,21 @@ const handleSignup = () => {
 
 // 소셜 로그인 처리
 const handleSocialLogin = (provider) => {
-  console.log(`${provider} 로그인 클릭`)
-  message.info(`${provider} 로그인을 진행합니다.`)
-
-  // 실제 소셜 로그인 로직
-  // window.location.href = `/auth/${provider}`
+  let url = '';
+  switch (provider) {
+    case 'google':
+      url = 'http://localhost:8080/oauth2/authorization/google';
+      break;
+    case 'kakao':
+      url = 'http://localhost:8080/oauth2/authorization/kakao';
+      break;
+    case 'naver':
+      url = 'http://localhost:8080/oauth2/authorization/naver';
+      break;
+    default:
+      return;
+  }
+  window.location.href = url;
 }
 </script>
 
