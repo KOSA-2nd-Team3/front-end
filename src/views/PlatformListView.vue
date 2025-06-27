@@ -224,6 +224,9 @@ const loadInitialData = async () => {
       platformName.value = firstParty.platformName
       platformPrice.value = firstParty.platformPrice
     } else {
+      const null_response = await axios.get(`http://localhost:8080/post/platform/${platformId}/`)
+      platformName.value = null_response.data.platformName
+      platformPrice.value = null_response.data.platformPrice
       hasMore.value = false
     }
   } catch (error) {
