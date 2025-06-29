@@ -69,7 +69,7 @@
                 </template>
               </a-avatar>
               <template #overlay>
-                <a-menu>
+                <a-menu @click="handleMenuClick">
                   <a-menu-item key="profile">
                     <UserOutlined />
                     프로필
@@ -165,8 +165,11 @@
     }
   }
 
-  const handleMenuClick = () => {
+  const handleMenuClick = ({key}) => {
     emit('menu-click')
+    if (key === 'profile') {
+      router.push('/profile')
+    }
   }
   </script>
 
