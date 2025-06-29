@@ -8,144 +8,95 @@
           <h1 class="page-title">프로필</h1>
         </div>
 
-        <!-- 프로필 카드 -->
-        <div class="profile-main-card">
-          <div class="profile-avatar-section">
-            <a-avatar :size="80" class="profile-avatar">
-              <template #icon>
-                <UserOutlined />
-              </template>
-            </a-avatar>
-            <div class="profile-basic-info">
-              <h2 class="profile-name">{{ userInfo.name || '사용자' }}</h2>
-              <p class="profile-status">프로필 사진 설정</p>
-            </div>
-          </div>
-        </div>
-
         <!-- 개인정보 섹션 -->
         <div class="profile-section">
           <h3 class="section-title">개인정보</h3>
           <div class="info-card">
-            <div class="info-row" v-for="info in personalInfo" :key="info.key">
-              <div class="info-label">{{ info.label }}</div>
-              <div class="info-value">
-                <span v-if="!info.editable">{{ info.value }}</span>
-                <a-button
-                    v-if="info.editable"
-                    type="link"
-                    class="edit-button"
-                    @click="editInfo(info.key)"
-                >
-                  편집
-                </a-button>
+            <!-- 로딩 상태 -->
+            <div v-if="loading" class="loading-container">
+              <div class="loading-text">정보를 불러오는 중...</div>
+            </div>
+
+            <!-- 에러 상태 -->
+            <div v-else-if="error" class="error-container">
+              <div class="error-text">{{ error }}</div>
+              <button @click="fetchProfile" class="retry-button">다시 시도</button>
+            </div>
+
+            <!-- 프로필 정보 테이블 -->
+            <div v-else class="profile-table">
+              <div class="table-row">
+                <div class="table-label">이름</div>
+                <div class="table-value">{{ profileData.name || '-' }}</div>
+              </div>
+              <div class="table-row">
+                <div class="table-label">닉네임</div>
+                <div class="table-value">{{ profileData.nickname || '-' }}</div>
+              </div>
+              <div class="table-row">
+                <div class="table-label">이메일</div>
+                <div class="table-value">{{ profileData.email || '-' }}</div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 연락처 정보 섹션 -->
-        <div class="profile-section">
-          <h3 class="section-title">연락처 정보</h3>
-          <div class="info-card">
-            <div class="info-row" v-for="contact in contactInfo" :key="contact.key">
-              <div class="info-label">{{ contact.label }}</div>
-              <div class="info-value">
-                <span class="contact-value">{{ contact.value }}</span>
-                <a-button type="link" class="edit-button" @click="editContact(contact.key)">
-                  <RightOutlined />
-                </a-button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 암호 재설정 섹션 -->
-        <div class="profile-section full-width">
-          <div class="password-reset-card" @click="handlePasswordReset">
-            <div class="password-reset-content">
-              <div class="password-reset-info">
-                <h4 class="password-reset-title">암호를 재설정</h4>
-                <p class="password-reset-desc">비밀번호 수정</p>
-              </div>
-              <div class="password-reset-date">
-                <span>수정</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { message } from 'ant-design-vue'
-import { UserOutlined, RightOutlined } from '@ant-design/icons-vue'
+import axios from 'axios'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-// 사용자 정보
-const userInfo = computed(() => authStore.userInfo || {})
+// 반응형 데이터
+const profileData = ref({
+  name: '',
+  nickname: '',
+  email: ''
+})
+const loading = ref(false)
+const error = ref('')
 
-// 개인정보 데이터
-const personalInfo = ref([
-  {
-    key: 'name',
-    label: '성명',
-    value: '유',
-    editable: true
-  },
-  {
-    key: 'username',
-    label: '유저명',
-    value: '편집',
-    editable: true
-  },
-  {
-    key: 'birthdate',
-    label: 'Dec.04,1995',
-    value: '편집',
-    editable: true
-  },
-  {
-    key: 'gender',
-    label: '남성',
-    value: '편집',
-    editable: true
+// 프로필 정보 가져오기
+const fetchProfile = async () => {
+  loading.value = true
+  error.value = ''
+
+  try {
+    const response = await axios.get('http://localhost:8080/member/profile')
+
+    profileData.value = response.data
+  } catch (err) {
+    console.error('프로필 정보 조회 실패:', err)
+
+    if (err.response?.status === 401) {
+      error.value = '인증이 만료되었습니다. 다시 로그인해주세요.'
+      // 로그인 페이지로 리다이렉트
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
+    } else if (err.response?.status === 404) {
+      error.value = '사용자 정보를 찾을 수 없습니다.'
+    } else {
+      error.value = '프로필 정보를 불러오는데 실패했습니다.'
+    }
+  } finally {
+    loading.value = false
   }
-])
-
-// 연락처 정보 데이터
-const contactInfo = ref([
-  {
-    key: 'email',
-    label: 'test1@gmail.com',
-    value: '공동 구독자에게 내 이메일 표시',
-    description: '전화 번호'
-  }
-])
-
-// 메서드들
-const editInfo = (key) => {
-  message.info(`${key} 정보를 편집합니다.`)
-  // 실제로는 편집 모달이나 페이지로 이동
 }
 
-const editContact = (key) => {
-  message.info(`${key} 연락처 정보를 편집합니다.`)
-  // 실제로는 연락처 편집 페이지로 이동
-}
-
-const handlePasswordReset = () => {
-  message.info('암호 재설정 페이지로 이동합니다.')
-  // 실제로는 암호 재설정 페이지로 이동
-  // router.push('/password-reset')
-}
+// 컴포넌트 마운트 시 프로필 정보 가져오기
+onMounted(() => {
+  fetchProfile()
+})
 </script>
 
 <style scoped>
@@ -175,51 +126,9 @@ const handlePasswordReset = () => {
   margin: 0;
 }
 
-/* 프로필 메인 카드 */
-.profile-main-card {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #f0f0f0;
-}
-
-.profile-avatar-section {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.profile-avatar {
-  background: #69b7ff;
-  flex-shrink: 0;
-}
-
-.profile-basic-info {
-  flex: 1;
-}
-
-.profile-name {
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 4px 0;
-}
-
-.profile-status {
-  color: #666;
-  margin: 0;
-  font-size: 14px;
-}
-
 /* 프로필 섹션 */
 .profile-section {
   margin-bottom: 24px;
-}
-
-.profile-section.full-width {
-  width: 100%;
 }
 
 .section-title {
@@ -238,7 +147,49 @@ const handlePasswordReset = () => {
   border: 1px solid #f0f0f0;
 }
 
-.info-row {
+/* 로딩 및 에러 상태 */
+.loading-container, .error-container {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.loading-text {
+  font-size: 16px;
+  color: #666;
+}
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.error-text {
+  font-size: 16px;
+  color: #ff4d4f;
+}
+
+.retry-button {
+  padding: 8px 16px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.retry-button:hover {
+  background: #40a9ff;
+}
+
+/* 프로필 테이블 */
+.profile-table {
+  width: 100%;
+}
+
+.table-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -246,83 +197,22 @@ const handlePasswordReset = () => {
   border-bottom: 1px solid #f5f5f5;
 }
 
-.info-row:last-child {
+.table-row:last-child {
   border-bottom: none;
 }
 
-.info-label {
+.table-label {
   font-size: 16px;
   color: #333;
-  font-weight: 500;
-}
-
-.info-value {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #666;
-}
-
-.contact-value {
-  font-size: 14px;
-  max-width: 300px;
-  text-align: right;
-}
-
-.edit-button {
-  color: #69b7ff;
-  padding: 0;
-  height: auto;
-  font-size: 14px;
-}
-
-.edit-button:hover {
-  color: #40a9ff;
-}
-
-/* 암호 재설정 카드 */
-.password-reset-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #f0f0f0;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.password-reset-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-}
-
-.password-reset-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.password-reset-info {
-  flex: 1;
-}
-
-.password-reset-title {
-  font-size: 18px;
   font-weight: 600;
-  color: #333;
-  margin: 0 0 4px 0;
+  min-width: 80px;
 }
 
-.password-reset-desc {
+.table-value {
+  font-size: 16px;
   color: #666;
-  margin: 0;
-  font-size: 14px;
-}
-
-.password-reset-date {
-  color: #69b7ff;
-  font-size: 14px;
-  font-weight: 500;
+  text-align: right;
+  flex: 1;
 }
 
 /* 반응형 디자인 */
@@ -345,44 +235,18 @@ const handlePasswordReset = () => {
     font-size: 24px;
   }
 
-  .profile-main-card {
-    padding: 24px 20px;
-  }
-
-  .profile-avatar-section {
-    flex-direction: column;
-    text-align: center;
-    gap: 16px;
-  }
-
   .info-card {
     padding: 20px;
   }
 
-  .info-row {
+  .table-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
 
-  .info-value {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .contact-value {
+  .table-value {
     text-align: left;
-    max-width: none;
-  }
-
-  .password-reset-card {
-    padding: 20px;
-  }
-
-  .password-reset-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
   }
 }
 </style>
