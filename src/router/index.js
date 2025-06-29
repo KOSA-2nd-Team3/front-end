@@ -3,6 +3,7 @@ import SignUpView from "@/views/LoginView.vue";
 import ChatView from "@/views/ChatView.vue";
 import LoginView from "@/views/LoginView.vue";
 import { useAuthStore } from '@/stores/auth'
+import SocialCallback from '@/views/SocialCallback.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,6 +16,11 @@ const router = createRouter({
             path: '/login',
             name: 'login',
             component: LoginView
+        },
+        {
+            path: '/auth/social-callback',  // 새로 추가된 소셜 콜백 라우트
+            name: 'SocialCallback',
+            component: SocialCallback
         },
         {
             path: '/chat',
