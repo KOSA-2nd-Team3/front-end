@@ -53,7 +53,7 @@
                 <div class="service-card">
                   <div class="service-header">
                     <div class="service-icon">
-                      <img :src="service.icon" :alt="service.name" />
+                      <img :src="service.platformImageUrl" :alt="service.name" />
                     </div>
                     <div class="service-info">
                       <h3 class="service-name">{{ service.name }}</h3>
@@ -62,6 +62,7 @@
                         <span class="price-period">/ {{ service.period }}</span>
                       </p>
                       <p class="service-description">{{ service.description }}</p>
+                      <p class="registration-time">{{ getTimeAgo(service.createdAt) }}</p>
                     </div>
                   </div>
 
@@ -187,7 +188,8 @@ async function fetchPosts() {
       status: tabType.value === 'owner' ? '파티장' : '파티원',
       icon: item.iconUrl,
       expired: item.isExpired === 'Y' ? 'expired' : 'active',
-      platformImageUrl: item.platformImageUrl
+      platformImageUrl: item.platformImageUrl,
+      createdAt : item.createdAt
     }))
     if (tabType.value === 'owner') {
       postsOwner.value = posts
@@ -215,6 +217,39 @@ const currentPage = computed(() => {
 // 서비스 참여
 const joinService = (service) => {
   router.push(`/dashboard/${service.id}`)
+}
+
+// 날짜 차이를 계산
+const getTimeAgo = (createdAt) => {
+  const createdDate = new Date(createdAt)
+  const currentDate = new Date()
+  const timeDiff = currentDate - createdDate // 밀리초 단위 차이
+
+  // 개월
+  const monthsAgo = currentDate.getMonth() - createdDate.getMonth() + (12 * (currentDate.getFullYear() - createdDate.getFullYear()));
+  if (monthsAgo > 0) {
+    return `${monthsAgo}개월 전`;
+  }
+
+  // 일
+  const daysAgo = Math.floor(timeDiff / (1000 * 3600 * 24)) // 밀리초를 일 단위로 변환
+  if (daysAgo > 0) {
+    return `${daysAgo}일 전`
+  }
+
+  // 시간
+  const hoursAgo = Math.floor(timeDiff / (1000 * 3600))  // 밀리초를 시간 단위로 변환
+  if (hoursAgo > 0) {
+    return `${hoursAgo}시간 전`
+  }
+
+  // 분
+  const minutesAgo = Math.floor(timeDiff / (1000 * 60)); // 밀리초를 분 단위로 변환
+  if (minutesAgo > 0) {
+    return `${minutesAgo}분 전`;
+  }
+
+  return "방금 전"
 }
 
 // 최초 로딩
@@ -307,6 +342,18 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 40px;
+}
+
+.registration-time {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 14px;
+  color: #888;
+  font-weight: 500;
+  background: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 8px;
 }
 
 .service-card {
@@ -446,6 +493,7 @@ onMounted(() => {
   margin-top: 24px;
   gap: 8px;
 }
+
 .pagination button {
   min-width: 32px;
   height: 32px;

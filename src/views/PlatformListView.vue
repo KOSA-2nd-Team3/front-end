@@ -148,8 +148,8 @@ const authStore = useAuthStore()
 const loginId = computed(() => authStore.userInfo?.loginId)
 const partySize = computed(() => parties.value.length > 0)
 // 플랫폼 정보
-const platformName = ref('Wave(웨이브)')
-const platformPrice = ref(13500)
+const platformName = ref('0')
+const platformPrice = ref(0)
 
 // 파티 데이터
 const allParties = ref([])
@@ -312,7 +312,7 @@ const handleJoinParty = async (party) => {
   if (party.currentCount == party.partySize) {
     const postId = party.postId
     try {
-      await axios.get(`http://localhost:8080/mailSend/${postId}`);
+      await axios.get(`http://localhost:8080/post/mailSend/${postId}`);
     } catch (error) {
       console.error('메일 전송 실패:', error);
       if (error.code === 'ECONNABORTED') {
