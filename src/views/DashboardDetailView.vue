@@ -24,7 +24,8 @@
                   <span class="duration-value">{{ durationMonth }}개월 </span>
                 </div>
                 <a-slider v-model:value="durationMonth" :min="1" :max="12" :marks="durationMarks"
-                  :disabled="serviceData.status === '파티원' || limitCount <= 0 || isServiceStart" @afterChange="onDurationChange" />
+                  :disabled="serviceData.status === '파티원' || limitCount <= 0 || isServiceStart"
+                  @afterChange="onDurationChange" />
                 <div class="party-leader-change-info">
                   변경 가능: <span class="change-count">{{ limitCount }}</span>회
                 </div>
@@ -154,10 +155,9 @@
 
                 <!-- 시작 버튼 -->
                 <div v-if="isLeader">
-                <a-button type="primary" block class="start-btn" @click="startService" 
-                :disabled="isServiceStart">
-                  {{ isServiceStart ? '시작됨' : '시작' }}
-                </a-button>
+                  <a-button type="primary" block class="start-btn" @click="startService" :disabled="isServiceStart">
+                    {{ isServiceStart ? '시작됨' : '시작' }}
+                  </a-button>
                 </div>
                 <!-- 삭제/만료 버튼 -->
                 <a-button type="primary" block class="delete-btn"
@@ -165,7 +165,7 @@
                   :disabled="serviceData.status === '파티원' && isServiceStart"
                   :style="serviceData.status === '파티원' && isServiceStart ? { background: '#e0e0e0', color: '#888', cursor: 'not-allowed', border: 'none' } : {}">
                   {{ serviceData.status === '파티원' && isServiceStart ? '구독 시작 후 나가기 불가' : (serviceData.status == '파티장' ?
-                  '삭제' : '나가기')
+                    '삭제' : '나가기')
                   }}
                 </a-button>
                 <div v-if="serviceData.status === '파티원' && isServiceStart" class="exit-info">
@@ -543,44 +543,60 @@ const startService = async () => {
 }
 
 const stopSharing = () => {
-  Modal.confirm({
-    title: '파티를 삭제하시겠습니까?',
-    content: '파티를 삭제하시면 파티가 해제됩니다.',
-    okText: '삭제',
-    cancelText: '취소',
-    async onOk() {
-      try {
-        await axios.post(`http://localhost:8080/post/leaveMyPost`, {
-          postId: serviceData.value.id,
-          loginId: loginId.value
-        });
-        message.success('파티가 삭제되었습니다.');
-        router.push('/dashboard');
-      } catch (e) {
-        message.error('삭제에 실패했습니다.');
+    Modal.confirm({
+      title: '파티를 삭제하시겠습니까?',
+      content: '파티를 삭제하시면 파티가 해제됩니다.',
+      okText: '삭제',
+      cancelText: '취소',
+      async onOk() {
+        try {
+          // 1. roomId 먼저 획득
+          const roomResponse = await axios.get(`http://localhost:8080/api/chat/room-by-post/${postId}`);
+          const roomId = roomResponse.data.chatRoomId;
+
+          // 2. 파티 삭제
+          await axios.delete(`http://localhost:8080/post/${serviceData.value.id}`, {
+            data: { loginId: loginId.value }
+          });
+
+          // 3. 채팅방 삭제
+          await axios.delete(`http://localhost:8080/chat-room/${roomId}`);
+
+          message.success('파티가 삭제되었습니다.');
+          router.push('/dashboard');
+        } catch (e) {
+          message.error('삭제에 실패했습니다.');
+        }
       }
-    }
-  })
-}
+    })
+  }
 
 const outSharing = () => {
   Modal.confirm({
-    title: '파티를 나가겠습니까?',
-    content: '파티를 나가시면 더 이상 구독 할 수 없습니다.',
-    okText: '나가기',
+    title: '파티를 탈퇴하시겠습니까?',
+    content: '파티를 탈퇴하시면 더 이상 구독 할 수 없습니다.',
+    okText: '탈퇴하기',
     cancelText: '취소',
     async onOk() {
       try {
-        await axios.post(`http://localhost:8080/post/leaveMyPost`, {
-          postId: serviceData.value.id,
-          loginId: loginId.value
-        });
-        message.success('파티가 삭제되었습니다.');
-        router.push('/dashboard');
-      } catch (e) {
-        message.error('삭제에 실패했습니다.');
+          // 1. roomId 먼저 획득
+          const roomResponse = await axios.get(`http://localhost:8080/api/chat/room-by-post/${postId}`);
+          const roomId = roomResponse.data.chatRoomId;
+
+          // 2. 파티 탈퇴
+          await axios.delete(`http://localhost:8080/post/${serviceData.value.id}`, {
+            data: { loginId: loginId.value }
+          });
+
+          // 3. 채팅방 탈퇴
+          await axios.delete(`http://localhost:8080/chat-room/${roomId}/leave`);
+
+          message.success('파티와 채팅방이 탈퇴되었습니다.');
+          router.push('/dashboard');
+        } catch (e) {
+          message.error('탈퇴에 실패했습니다.');
+        }
       }
-    }
   })
 }
 </script>
