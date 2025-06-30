@@ -66,11 +66,6 @@
                 <PlusOutlined />
               </a-button>
             </div>
-
-            <div class="total-cost-info">
-              <span class="total-label">총 구독 비용</span>
-              <span class="total-amount">{{ totalSubscriptionCost.toLocaleString() }}원</span>
-            </div>
           </div>
 
           <!-- 슬롯 선택 섹션 -->
@@ -276,6 +271,18 @@ const decreaseSlots = () => {
   }
 }
 
+const increaseMonths = () => {
+  if (selectedMonths.value < 12) {
+    selectedMonths.value++
+  }
+}
+
+const decreaseMonths = () => {
+  if (selectedMonths.value > 1) {
+    selectedMonths.value--
+  }
+}
+
 const proceedToNext = async () => {
   try {
     loading.value = true
@@ -291,7 +298,8 @@ const proceedToNext = async () => {
       platformId: serviceInfo.value.id,
       capacity: selectedSlots.value + 1, // 파티장 포함 총 인원
       currentCount: 1, // 파티장만 있는 상태
-      loginId: authStore.userInfo.loginId
+      loginId: authStore.userInfo.loginId,
+      durationMonth: selectedMonths.value // 선택된 구독 개월 수 추가
     }
 
     console.log('🚀 구독 생성 API 호출:', subscriptionData)
@@ -560,22 +568,6 @@ const proceedToNext = async () => {
 .period-unit {
   font-size: 16px;
   color: #666;
-}
-
-.total-cost-info {
-  margin-top: 16px;
-}
-
-.total-label {
-  color: #666;
-  font-size: 14px;
-  margin-right: 8px;
-}
-
-.total-amount {
-  font-size: 18px;
-  font-weight: bold;
-  color: #1890ff;
 }
 
 .monthly-cost-breakdown {
