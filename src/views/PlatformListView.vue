@@ -312,7 +312,7 @@ const handleJoinParty = async (party) => {
   if (party.currentCount == party.partySize) {
     const postId = party.postId
     try {
-      await axios.get(`http://localhost:8080/mailSend/${postId}`);
+      await axios.get(`http://localhost:8080/post/mailSend/${postId}`);
     } catch (error) {
       console.error('메일 전송 실패:', error);
       if (error.code === 'ECONNABORTED') {

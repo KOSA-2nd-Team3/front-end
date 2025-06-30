@@ -24,7 +24,7 @@
                   <span class="duration-value">{{ durationMonth }}개월 </span>
                 </div>
                 <a-slider v-model:value="durationMonth" :min="1" :max="12" :marks="durationMarks"
-                  :disabled="serviceData.status === '파티원'" @afterChange="onDurationChange" />
+                  :disabled="serviceData.status === '파티원' || limitCount <= 0 || isServiceStart" @afterChange="onDurationChange" />
                 <div class="party-leader-change-info">
                   변경 가능: <span class="change-count">{{ limitCount }}</span>회
                 </div>
@@ -58,7 +58,7 @@
                     <a-tag v-if="member.isOwner" color="orange">{{ member.role }}</a-tag>
                     <div class="spacer"></div>
                     <span class="member-joined">{{ member.role == '파티장' ? '생성' : '가입' }}/{{ formatDate(member.createdAt)
-                      }}</span>
+                    }}</span>
                   </div>
 
                   <!-- 빈 슬롯들 (예약됨, 무료 등) -->
@@ -153,50 +153,45 @@
                 </a-button>
 
                 <!-- 시작 버튼 -->
-                <a-button type="primary" block class="start-btn" @click="startService">
-                  시작
+                <div v-if="isLeader">
+                <a-button type="primary" block class="start-btn" @click="startService" 
+                :disabled="isServiceStart">
+                  {{ isServiceStart ? '시작됨' : '시작' }}
                 </a-button>
-
+                </div>
                 <!-- 삭제/만료 버튼 -->
                 <a-button type="primary" block class="delete-btn"
-                  @click="serviceData.status === '파티장' ? stopSharing() : outSharing()">
-                  {{ serviceData.status == '파티장' ? '삭제' : '나가기' }}
+                  @click="serviceData.status === '파티장' ? stopSharing() : outSharing()"
+                  :disabled="serviceData.status === '파티원' && isServiceStart"
+                  :style="serviceData.status === '파티원' && isServiceStart ? { background: '#e0e0e0', color: '#888', cursor: 'not-allowed', border: 'none' } : {}">
+                  {{ serviceData.status === '파티원' && isServiceStart ? '구독 시작 후 나가기 불가' : (serviceData.status == '파티장' ?
+                  '삭제' : '나가기')
+                  }}
                 </a-button>
+                <div v-if="serviceData.status === '파티원' && isServiceStart" class="exit-info">
+                  <InfoCircleOutlined style="color: #faad14; margin-right: 4px;" />
+                  구독이 시작된 이후에는 파티원은 나갈 수 없습니다.
+                </div>
+
 
                 <!-- 시작일/만료일 정보 표시 -->
-                <div class="date-info-container">
+                <div v-if="isServiceStart" class="date-info-container">
                   <!-- 시작일 정보 -->
                   <div class="date-info-card start-date">
                     <div class="date-content">
-                      <div class="date-icon">d</div>
                       <span class="date-label">시작일</span>
-                      <span class="date-value">{{ formatDate(members.createdAt) }}</span>
+                      <span class="date-value">{{ formatDate(serviceData.startDate) }}</span>
                     </div>
                   </div>
 
                   <!-- 만료일 정보 -->
-                  <div v-if="remainingDays > 0" class="date-info-card expire-date active">
+                  <div class="date-info-card expire-date">
                     <div class="date-content">
-                      <span class="date-label">만료까지</span>
-                      <div class="expire-info">
-                        <span class="expire-days">{{ remainingDays }}일</span>
-                        <span class="expire-text">남음</span>
-                      </div>
-                      <span class="expire-date-text">{{ formatDate(members.createdAt) }}</span>
+                      <span class="date-label">만료일</span>
+                      <span class="date-value">{{ formatDate(serviceData.expirationDate) }}</span>
                     </div>
                   </div>
-                  <div v-else-if="remainingDays === 0" class="date-info-card expire-date today">
-                    <div class="date-content">
-                      <span class="date-label">오늘 만료</span>
-                      <span class="expire-date-text">{{ formatDate(members.createdAt) }}</span>
-                    </div>
-                  </div>
-                  <div v-else class="date-info-card expire-date expired">
-                    <div class="date-content">
-                      <span class="date-label">{{ Math.abs(remainingDays) }}일 전 만료</span>
-                      <span class="expire-date-text">{{ formatDate(members.createdAt) }}</span>
-                    </div>
-                  </div>
+
                 </div>
               </div>
 
@@ -227,12 +222,19 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const loginId = computed(() => authStore.userInfo?.loginId)
-const postId = route.params.id;
-const afterChangeLock = ref(false);
+const postId = route.params.id
+const afterChangeLock = ref(false)
+const isServiceStart = computed(() => !!serviceData.value.startDate) // !!는 null check
+
+console.log('postId : ', postId)
+if (!postId) {
+  message.error('postId를 찾을 수 없습니다!');
+}
 // 편집 모드 상태 추가
 const isEditing = ref(false)
 const isLeader = computed(() => serviceData.value.status === '파티장')
 const limitCount = ref(2);
+
 // 편집용 임시 데이터
 const editingAccount = reactive({
   email: '',
@@ -269,7 +271,7 @@ const serviceData = ref({})
 // currentMembers: 1 + reservedSlots.value.length, // 파티장 1 + 예약됨 1 = 2
 //})
 
-onMounted(async () => {
+const fetchDetail = async () => {
   try {
     const response = await axios.get(
       `http://localhost:8080/post/myPost/${postId}`, { params: { loginId: loginId.value } }
@@ -287,7 +289,7 @@ onMounted(async () => {
       period: '개월',
       description: item.description,
       icon: item.iconUrl,
-      currentMembers: item.currentCount + reservedSlots.value.length,
+      currentMembers: item.currentCount,
       maxMembers: item.partySize,
       email: item.hostId,
       password: item.hostPwd,
@@ -296,16 +298,18 @@ onMounted(async () => {
       category: item.isExpired === 'Y' ? 'expired' : 'activity',
       type: item.isOwner === 'Y' ? 'sharing' : 'my',
       platformImageUrl: item.platformImageUrl,
-      limitCount : item.limitCount,
-      expirationDate : item.expirationDate
+      limitCount: item.limitCount,
+      expirationDate: item.expirationDate,
+      startDate: item.startDate
     };
 
     editingAccount.email = serviceData.value.email
     editingAccount.password = serviceData.value.password
     durationMonth.value = item.durationMonth
-    originalDuration.value = item.durationMonth 
-    limitCount.value = item.limitCount  
+    originalDuration.value = item.durationMonth
+    limitCount.value = item.limitCount
     console.log('console :', limitCount.value)
+    serviceData.value.startDate = item.startDate
 
     members.value = item.members.map((member) => ({
       id: member.memberId,
@@ -320,7 +324,9 @@ onMounted(async () => {
   } catch (error) {
     console.error('구독 데이터 요청 실패:', error);
   }
-});
+}
+
+onMounted(fetchDetail)
 
 // 멤버 목록 (파티장만)
 const members = ref([])
@@ -341,11 +347,11 @@ const onDurationChange = (value) => {
       await axios.post('http://localhost:8080/post/update', {
         postId: postId,
         loginId: loginId.value,
-        durationMonth: value
+        durationMonth: value,
       });
       message.success('구독 기간이 변경되었습니다.');
-      originalDuration.value = value;
-       
+      originalDuration.value = value
+      limitCount.value = limitCount.value - 1
     },
     onCancel() {
       durationMonth.value = originalDuration.value; // 원래 값으로 복원
@@ -509,8 +515,26 @@ const joinGroupChat = async () => {
   }
 }
 
-const startService = async () =>{
-  
+const startService = async () => {
+  Modal.confirm({
+    title: '정말로 시작하시겠습니까?',
+    content: '시작하시면 취소 할 수 없습니다.',
+    okText: '시작',
+    cancelText: '취소',
+    async onOk() {
+      try {
+        const response = await axios.post(`http://localhost:8080/post/start`, {
+          postId: postId,
+          durationMonth: durationMonth.value
+        });
+        await fetchDetail()
+        message.success('파티가 시작되었습니다.')
+      } catch (e) {
+        message.error('시작 할 수 없습니다.')
+      }
+    }
+  })
+
 }
 
 const stopSharing = () => {
@@ -662,11 +686,13 @@ const outSharing = () => {
   font-size: 15px;
   color: #666666;
   font-weight: 600;
-   align-self: flex-end;
+  align-self: flex-end;
 }
+
 .change-count {
   color: #1890ff;
 }
+
 /* 가격 정보 */
 .price-info {
   margin-bottom: 24px;
@@ -993,6 +1019,14 @@ const outSharing = () => {
   box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
 }
 
+.start-btn[disabled] {
+  background: #e0e0e0 !important;
+  color: #888 !important;
+  border: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.85;
+}
+
 /* 삭제 버튼 (한 줄로) */
 .delete-btn {
   height: 44px;
@@ -1010,6 +1044,23 @@ const outSharing = () => {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3);
 }
+
+.delete-btn[disabled] {
+  background: #e0e0e0 !important;
+  color: #888 !important;
+  border: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.85;
+}
+
+.exit-info {
+  margin-top: 6px;
+  color: #faad14;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+
 
 /* 날짜 정보 컨테이너 */
 .date-info-container {
@@ -1037,26 +1088,13 @@ const outSharing = () => {
   color: #0050b3;
 }
 
-/* 만료일 카드 - 활성 상태 */
-.date-info-card.expire-date.active {
-  background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%);
-  border: 1px solid #95de64;
-  color: #389e0d;
+/* 만료일 카드 */
+.date-info-card.expire-date {
+  background: linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%);
+  border: 1px solid #ff4d4f;
+  color: #a8071a;
 }
 
-/* 만료일 카드 - 오늘 만료 */
-.date-info-card.expire-date.today {
-  background: linear-gradient(135deg, #fff7e6 0%, #ffd591 100%);
-  border: 1px solid #ffb84d;
-  color: #d46b08;
-}
-
-/* 만료일 카드 - 만료됨 */
-.date-info-card.expire-date.expired {
-  background: linear-gradient(135deg, #fff2f0 0%, #ffccc7 100%);
-  border: 1px solid #ff9c95;
-  color: #cf1322;
-}
 
 /* 날짜 아이콘 */
 .date-icon {
