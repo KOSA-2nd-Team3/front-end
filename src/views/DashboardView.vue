@@ -29,7 +29,9 @@
                   class="filter-tab"
                 >
                   이름순
-                  <span v-if="sortBy === 'platformName'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                  <span v-if="sortBy === 'platformName'">{{
+                    sortOrder === "asc" ? "▲" : "▼"
+                  }}</span>
                 </a-button>
                 <a-button
                   :class="{ 'active-sort': sortBy === 'createdAt' }"
@@ -37,11 +39,12 @@
                   class="filter-tab"
                 >
                   최신순
-                  <span v-if="sortBy === 'createdAt'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                  <span v-if="sortBy === 'createdAt'">{{
+                    sortOrder === "asc" ? "▲" : "▼"
+                  }}</span>
                 </a-button>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -49,11 +52,20 @@
         <div class="services-section">
           <div class="services-container">
             <a-row :gutter="[32, 32]" justify="start">
-              <a-col :xs="24" :sm="12" :lg="8" v-for="service in filteredPosts" :key="service.id">
+              <a-col
+                :xs="24"
+                :sm="12"
+                :lg="8"
+                v-for="service in filteredPosts"
+                :key="service.id"
+              >
                 <div class="service-card">
                   <div class="service-header">
                     <div class="service-icon">
-                      <img :src="service.platformImageUrl" :alt="service.name" />
+                      <img
+                        :src="service.platformImageUrl"
+                        :alt="service.name"
+                      />
                     </div>
                     <div class="service-info">
                       <h3 class="service-name">{{ service.name }}</h3>
@@ -61,14 +73,20 @@
                         {{ service.price.toLocaleString() }}원
                         <span class="price-period">/ {{ service.period }}</span>
                       </p>
-                      <p class="service-description">{{ service.description }}</p>
-                      <p class="registration-time">{{ getTimeAgo(service.createdAt) }}</p>
+                      <p class="service-description">
+                        {{ service.description }}
+                      </p>
+                    </div>
+                    <div class="registration-time">
+                      {{ getTimeAgo(service.createdAt) }}
                     </div>
                   </div>
 
                   <div class="service-progress">
                     <div class="progress-info">
-                      <span class="progress-text">{{ service.current }}/{{ service.total }}</span>
+                      <span class="progress-text"
+                        >{{ service.current }}/{{ service.total }}</span
+                      >
                       <span class="status-badge">{{ service.status }}</span>
                     </div>
                     <a-progress
@@ -78,7 +96,7 @@
                       class="progress-bar"
                     />
                     <div class="time-remaining">
-                      <a-avatar size="small" style="background-color: #69b7ff;">
+                      <a-avatar size="small" style="background-color: #69b7ff">
                         <template #icon>
                           <ClockCircleOutlined />
                         </template>
@@ -105,8 +123,8 @@
               <a-button
                 v-for="pageNum in totalPages"
                 :key="pageNum"
-                @click="changePage(pageNum-1)"
-                :class="{ 'active-page': currentPage === pageNum-1 }"
+                @click="changePage(pageNum - 1)"
+                :class="{ 'active-page': currentPage === pageNum - 1 }"
               >
                 {{ pageNum }}
               </a-button>
@@ -119,56 +137,60 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { ClockCircleOutlined } from '@ant-design/icons-vue'
-import axios from 'axios'
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { ClockCircleOutlined } from "@ant-design/icons-vue";
+import axios from "axios";
 
 // 상태 변수
-const sortBy = ref('createdAt')      // 'platformName' or 'createdAt'
-const sortOrder = ref('desc')        // 'asc' or 'desc'
-const tabType = ref('owner')         // 'owner' (파티장) / 'member' (파티원)
-const postsOwner = ref([])
-const postsMember = ref([])
-const currentPageOwner = ref(0)
-const currentPageMember = ref(0)
-const totalPagesOwner = ref(1)
-const totalPagesMember = ref(1)
-const router = useRouter()
+const sortBy = ref("createdAt"); // 'platformName' or 'createdAt'
+const sortOrder = ref("desc"); // 'asc' or 'desc'
+const tabType = ref("owner"); // 'owner' (파티장) / 'member' (파티원)
+const postsOwner = ref([]);
+const postsMember = ref([]);
+const currentPageOwner = ref(0);
+const currentPageMember = ref(0);
+const totalPagesOwner = ref(1);
+const totalPagesMember = ref(1);
+const router = useRouter();
 
 // 정렬 버튼 클릭 핸들러
 function toggleSort(type) {
   if (sortBy.value === type) {
-    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
   } else {
-    sortBy.value = type
-    sortOrder.value = 'desc'
+    sortBy.value = type;
+    sortOrder.value = "desc";
   }
-  fetchPosts()
+  fetchPosts();
 }
 
 // 탭 변경 핸들러
 function setTab(type) {
-  tabType.value = type
-  fetchPosts()
+  tabType.value = type;
+  fetchPosts();
 }
 
 // 페이지 변경
 function changePage(newPage) {
-  if (tabType.value === 'owner') {
-    currentPageOwner.value = newPage
+  if (tabType.value === "owner") {
+    currentPageOwner.value = newPage;
   } else {
-    currentPageMember.value = newPage
+    currentPageMember.value = newPage;
   }
-  fetchPosts()
+  fetchPosts();
 }
 
 // 데이터 조회 (탭/정렬/페이지 모두 반영)
 async function fetchPosts() {
-  const page = tabType.value === 'owner' ? currentPageOwner.value : currentPageMember.value
-  const apiUrl = tabType.value === 'owner'
-    ? 'http://localhost:8080/post/myPost'
-    : 'http://localhost:8080/post/myPost-join'
+  const page =
+    tabType.value === "owner"
+      ? currentPageOwner.value
+      : currentPageMember.value;
+  const apiUrl =
+    tabType.value === "owner"
+      ? "http://localhost:8080/post/myPost"
+      : "http://localhost:8080/post/myPost-join";
   try {
     const response = await axios.get(apiUrl, {
       params: {
@@ -176,27 +198,27 @@ async function fetchPosts() {
         sortField: sortBy.value,
         sortDirection: sortOrder.value,
       },
-    })
-    const posts = response.data.content.map(item => ({
+    });
+    const posts = response.data.content.map((item) => ({
       id: item.postId,
       name: item.platformName,
       price: item.price,
-      period: '월',
-      description: item.description || '',
+      period: "월",
+      description: item.description || "",
       current: item.currentCount,
       total: item.partySize,
-      status: tabType.value === 'owner' ? '파티장' : '파티원',
+      status: tabType.value === "owner" ? "파티장" : "파티원",
       icon: item.iconUrl,
-      expired: item.isExpired === 'Y' ? 'expired' : 'active',
+      expired: item.isExpired === "Y" ? "expired" : "active",
       platformImageUrl: item.platformImageUrl,
-      createdAt : item.createdAt
-    }))
-    if (tabType.value === 'owner') {
-      postsOwner.value = posts
-      totalPagesOwner.value = response.data.totalPages
+      createdAt: item.createdAt,
+    }));
+    if (tabType.value === "owner") {
+      postsOwner.value = posts;
+      totalPagesOwner.value = response.data.totalPages;
     } else {
-      postsMember.value = posts
-      totalPagesMember.value = response.data.totalPages
+      postsMember.value = posts;
+      totalPagesMember.value = response.data.totalPages;
     }
   } catch (e) {
     // 에러 처리
@@ -205,42 +227,49 @@ async function fetchPosts() {
 
 // 실제 보여줄 리스트
 const filteredPosts = computed(() => {
-  return tabType.value === 'owner' ? postsOwner.value : postsMember.value
-})
+  return tabType.value === "owner" ? postsOwner.value : postsMember.value;
+});
 const totalPages = computed(() => {
-  return tabType.value === 'owner' ? totalPagesOwner.value : totalPagesMember.value
-})
+  return tabType.value === "owner"
+    ? totalPagesOwner.value
+    : totalPagesMember.value;
+});
 const currentPage = computed(() => {
-  return tabType.value === 'owner' ? currentPageOwner.value : currentPageMember.value
-})
+  return tabType.value === "owner"
+    ? currentPageOwner.value
+    : currentPageMember.value;
+});
 
 // 서비스 참여
 const joinService = (service) => {
-  router.push(`/dashboard/${service.id}`)
-}
+  router.push(`/dashboard/${service.id}`);
+};
 
 // 날짜 차이를 계산
 const getTimeAgo = (createdAt) => {
-  const createdDate = new Date(createdAt)
-  const currentDate = new Date()
-  const timeDiff = currentDate - createdDate // 밀리초 단위 차이
+  const createdDate = new Date(createdAt);
+  const currentDate = new Date();
+  const timeDiff = currentDate - createdDate; // 밀리초 단위 차이
 
   // 개월
-  const monthsAgo = currentDate.getMonth() - createdDate.getMonth() + (12 * (currentDate.getFullYear() - createdDate.getFullYear()));
+  const monthsAgo =
+    currentDate.getMonth() -
+    createdDate.getMonth() +
+    12 * (currentDate.getFullYear() - createdDate.getFullYear());
   if (monthsAgo > 0) {
     return `${monthsAgo}개월 전`;
   }
 
   // 일
-  const daysAgo = Math.floor(timeDiff / (1000 * 3600 * 24)) // 밀리초를 일 단위로 변환
+  const daysAgo = Math.floor(timeDiff / (1000 * 3600 * 24)); // 밀리초를 일 단위로 변환
   if (daysAgo > 0) {
-    return `${daysAgo}일 전`
+    return `${daysAgo}일 전`;
   }
 
   // 시간
-  const hoursAgo = Math.floor(timeDiff / (1000 * 3600))  // 밀리초를 시간 단위로 변환
+  const hoursAgo = Math.floor(timeDiff / (1000 * 3600)); // 밀리초를 시간 단위로 변환
   if (hoursAgo > 0) {
-    return `${hoursAgo}시간 전`
+    return `${hoursAgo}시간 전`;
   }
 
   // 분
@@ -249,15 +278,14 @@ const getTimeAgo = (createdAt) => {
     return `${minutesAgo}분 전`;
   }
 
-  return "방금 전"
-}
+  return "방금 전";
+};
 
 // 최초 로딩
 onMounted(() => {
-  fetchPosts()
-})
+  fetchPosts();
+});
 </script>
-
 
 <style scoped>
 .dashboard-container {
@@ -345,15 +373,15 @@ onMounted(() => {
 }
 
 .registration-time {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 14px;
+  font-size: 12px;
   color: #888;
   font-weight: 500;
   background: #f5f5f5;
   padding: 4px 8px;
   border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-start;
 }
 
 .service-card {
@@ -377,6 +405,7 @@ onMounted(() => {
   display: flex;
   gap: 16px;
   margin-bottom: 20px;
+  align-items: flex-start;
 }
 
 .service-icon {
@@ -502,6 +531,7 @@ onMounted(() => {
   background: white;
   cursor: pointer;
 }
+
 .pagination button.active-page {
   background: #1890ff;
   color: white;
@@ -535,7 +565,9 @@ onMounted(() => {
   font-weight: bold;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
   background-color: #f0f0f0;
   color: #333333;
   text-align: center;
