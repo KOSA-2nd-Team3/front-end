@@ -285,7 +285,7 @@ const fetchDetail = async () => {
     serviceData.value = {
       id: item.postId,
       name: item.platformName,
-      price: item.price / item.partySize,
+      price: item.price,
       period: '개월',
       description: item.description,
       icon: item.iconUrl,
@@ -522,8 +522,13 @@ const startService = async () => {
     okText: '시작',
     cancelText: '취소',
     async onOk() {
+      console.log('current : ', serviceData.value.currentMembers)
+      console.log('Max : ', serviceData.value.maxMembers)
+      if(serviceData.value.currentMembers !== serviceData.value.maxMembers){
+        return message.error('파티 멤버가 다 모여야 시작 할 수 있습니다.')
+      }
       try {
-        const response = await axios.post(`http://localhost:8080/post/start`, {
+        await axios.post(`http://localhost:8080/post/start`, {
           postId: postId,
           durationMonth: durationMonth.value
         });

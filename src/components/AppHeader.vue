@@ -33,19 +33,6 @@
             >
               채팅
             </a-button>
-            <a-button
-                type="text"
-                :class="{ 'active-nav': currentPage === 'community' }"
-                @click="navigateTo('community')"
-            >
-              통지
-              <a-badge
-                  count="1"
-                  size="small"
-                  :offset="[10, -5]"
-                  style="background-color: #69b7ff;"
-              />
-            </a-button>
           </div>
 
           <!-- 우측 사용자 영역 -->
@@ -74,11 +61,6 @@
                     <UserOutlined />
                     프로필
                   </a-menu-item>
-                  <a-menu-item key="settings">
-                    <SettingOutlined />
-                    설정
-                  </a-menu-item>
-                  <a-menu-divider />
                   <a-menu-item key="logout" @click="handleLogout">
                     <LogoutOutlined />
                     로그아웃
@@ -87,12 +69,6 @@
               </template>
             </a-dropdown>
 
-            <!-- 햄버거 메뉴 -->
-            <a-button type="text" @click="handleMenuClick">
-              <template #icon>
-                <MenuOutlined />
-              </template>
-            </a-button>
           </div>
         </div>
       </div>
