@@ -66,7 +66,7 @@
                     </div>
                     <div class="user-info">
                       <h3 class="user-name">{{ party.leaderName }}</h3>
-                      <p class="user-plan">{{ party.platformName }} {{ party.monthUnit }}개월</p>
+                      <p class="user-plan">{{ party.platformName }} {{ party.durationMonth }}개월</p>
                       <p class="registration-time">{{ getTimeAgo(party.createdAt) }}</p>
                     </div>
                   </div>
