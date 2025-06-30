@@ -24,11 +24,8 @@
                   <span class="duration-value">{{ durationMonth }}개월 </span>
                 </div>
                 <a-slider v-model:value="durationMonth" :min="1" :max="12" :marks="durationMarks"
-                  :disabled="serviceData.status === '파티원' || limitCount <= 0 || isServiceStart"
+                  :disabled="serviceData.status === '파티원' || isServiceStart"
                   @afterChange="onDurationChange" />
-                <div class="party-leader-change-info">
-                  변경 가능: <span class="change-count">{{ limitCount }}</span>회
-                </div>
               </div>
 
               <!-- 구독 가격 정보 -->
@@ -233,7 +230,6 @@ if (!postId) {
 // 편집 모드 상태 추가
 const isEditing = ref(false)
 const isLeader = computed(() => serviceData.value.status === '파티장')
-const limitCount = ref(2);
 
 // 편집용 임시 데이터
 const editingAccount = reactive({
@@ -298,7 +294,6 @@ const fetchDetail = async () => {
       category: item.isExpired === 'Y' ? 'expired' : 'activity',
       type: item.isOwner === 'Y' ? 'sharing' : 'my',
       platformImageUrl: item.platformImageUrl,
-      limitCount: item.limitCount,
       expirationDate: item.expirationDate,
       startDate: item.startDate
     };
@@ -307,8 +302,6 @@ const fetchDetail = async () => {
     editingAccount.password = serviceData.value.password
     durationMonth.value = item.durationMonth
     originalDuration.value = item.durationMonth
-    limitCount.value = item.limitCount
-    console.log('console :', limitCount.value)
     serviceData.value.startDate = item.startDate
 
     members.value = item.members.map((member) => ({
@@ -351,7 +344,6 @@ const onDurationChange = (value) => {
       });
       message.success('구독 기간이 변경되었습니다.');
       originalDuration.value = value
-      limitCount.value = limitCount.value - 1
     },
     onCancel() {
       durationMonth.value = originalDuration.value; // 원래 값으로 복원
@@ -701,18 +693,6 @@ const outSharing = () => {
 
 .duration-slider {
   margin-top: 8px;
-}
-
-.party-leader-change-info {
-  margin-top: 5px;
-  font-size: 15px;
-  color: #666666;
-  font-weight: 600;
-  align-self: flex-end;
-}
-
-.change-count {
-  color: #1890ff;
 }
 
 /* 가격 정보 */
