@@ -90,7 +90,7 @@
                       />
                     </div>
                     <div class="service-info">
-                      <h3 class="service-name">{{ service.name }}</h3>
+                      <h3 class="service-name">{{ service.name }} #{{ service.id }}</h3>
                       <p class="service-price">
                         {{ service.price.toLocaleString() }}원
                         <span class="price-period">/ {{ service.period }}</span>
