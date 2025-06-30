@@ -70,27 +70,35 @@
 
           <!-- 슬롯 선택 섹션 -->
           <div class="slot-selection-section">
-            <h2 class="slot-title">공유할 슬롯은 몇 개입니까?</h2>
+            <div class="slot-card">
+              <h2 class="slot-title">공유할 슬롯은 몇 개입니까?</h2>
 
-            <div class="slot-selector">
-              <a-button type="text" class="slot-button" :disabled="selectedSlots <= 1" @click="decreaseSlots">
-                <MinusOutlined />
-              </a-button>
+              <div class="slot-selector">
+                <a-button type="text" class="slot-button" :disabled="selectedSlots <= 1" @click="decreaseSlots">
+                  <MinusOutlined />
+                </a-button>
 
-              <div class="slot-display">
-                <span class="slot-number">{{ selectedSlots }}</span>
+                <div class="slot-display">
+                  <span class="slot-number">{{ selectedSlots }}</span>
+                </div>
+
+                <a-button type="text" class="slot-button" :disabled="selectedSlots >= (serviceInfo.maxMembers - 1)"
+                  @click="increaseSlots">
+                  <PlusOutlined />
+                </a-button>
               </div>
 
-              <a-button type="text" class="slot-button" :disabled="selectedSlots >= (serviceInfo.maxMembers - 1)"
-                @click="increaseSlots">
-                <PlusOutlined />
-              </a-button>
-            </div>
+              <div class="cost-info">
+                <span class="cost-label">개인별</span>
+                <span class="cost-amount">{{ perPersonCost.toLocaleString() }}원</span>
+                <span class="cost-period">/ 월</span>
+              </div>
 
-            <div class="cost-info">
-              <span class="cost-label">개인별</span>
-              <span class="cost-amount">{{ perPersonCost.toLocaleString() }}원</span>
-              <span class="cost-period">/ 월</span>
+              <!-- 안내 메시지 -->
+              <div class="info-message">
+                <ExclamationCircleOutlined class="info-icon" />
+                <span class="info-text">자신의 슬롯을 제외한 구독의 사용 가능한 슬롯입니다.</span>
+              </div>
             </div>
 
             <!-- 다음 버튼 -->
@@ -98,12 +106,6 @@
               <a-button type="primary" size="large" class="next-button" @click="proceedToNext">
                 다음
               </a-button>
-            </div>
-
-            <!-- 안내 메시지 -->
-            <div class="info-message">
-              <ExclamationCircleOutlined class="info-icon" />
-              <span class="info-text">자신의 슬롯을 제외한 구독의 사용 가능한 슬롯입니다.</span>
             </div>
           </div>
         </template>
@@ -153,7 +155,7 @@ const serviceInfo = ref({
 // 1인당 비용 계산 (파티장 포함 총 인원으로 나누기)
 const perPersonCost = computed(() => {
   const totalMembers = selectedSlots.value + 1 // 파티장 포함
-  return Math.floor(serviceInfo.value.price / totalMembers)
+  return Math.ceil(serviceInfo.value.price / totalMembers)
 })
 
 // 나머지 금액 계산 (파티장이 부담)
@@ -596,6 +598,15 @@ const proceedToNext = async () => {
 /* 슬롯 선택 섹션 */
 .slot-selection-section {
   text-align: center;
+}
+
+.slot-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f0f0f0;
+  margin-bottom: 24px;
 }
 
 .slot-title {
