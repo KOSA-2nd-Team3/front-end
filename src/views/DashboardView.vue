@@ -22,27 +22,49 @@
                   파티원
                 </a-button>
               </div>
-              <div class="filter-tabs">
-                <a-button
-                  :class="{ 'active-sort': sortBy === 'platformName' }"
-                  @click="toggleSort('platformName')"
-                  class="filter-tab"
-                >
-                  이름순
-                  <span v-if="sortBy === 'platformName'">{{
-                    sortOrder === "asc" ? "▲" : "▼"
-                  }}</span>
-                </a-button>
-                <a-button
-                  :class="{ 'active-sort': sortBy === 'createdAt' }"
-                  @click="toggleSort('createdAt')"
-                  class="filter-tab"
-                >
-                  최신순
-                  <span v-if="sortBy === 'createdAt'">{{
-                    sortOrder === "asc" ? "▲" : "▼"
-                  }}</span>
-                </a-button>
+
+              <div class="filter-section">
+                <!-- 상태 필터 -->
+                <div class="status-tabs">
+                  <a-button
+                    :class="{ 'active-status': statusFilter === 'active' }"
+                    @click="setStatusFilter('active')"
+                    class="filter-tab"
+                  >
+                    활성
+                  </a-button>
+                  <a-button
+                    :class="{ 'active-status': statusFilter === 'expired' }"
+                    @click="setStatusFilter('expired')"
+                    class="filter-tab"
+                  >
+                    만료
+                  </a-button>
+                </div>
+
+                <!-- 정렬 필터 -->
+                <div class="filter-tabs">
+                  <a-button
+                    :class="{ 'active-sort': sortBy === 'platformName' }"
+                    @click="toggleSort('platformName')"
+                    class="filter-tab"
+                  >
+                    이름순
+                    <span v-if="sortBy === 'platformName'">{{
+                        sortOrder === "asc" ? "▲" : "▼"
+                      }}</span>
+                  </a-button>
+                  <a-button
+                    :class="{ 'active-sort': sortBy === 'createdAt' }"
+                    @click="toggleSort('createdAt')"
+                    class="filter-tab"
+                  >
+                    최신순
+                    <span v-if="sortBy === 'createdAt'">{{
+                        sortOrder === "asc" ? "▲" : "▼"
+                      }}</span>
+                  </a-button>
+                </div>
               </div>
             </div>
           </div>
@@ -85,14 +107,16 @@
                   <div class="service-progress">
                     <div class="progress-info">
                       <span class="progress-text"
-                        >{{ service.current }}/{{ service.total }}</span
+                      >{{ service.current }}/{{ service.total }}</span
                       >
-                      <span class="status-badge">{{ service.status }}</span>
+                      <span class="status-badge" :class="{ 'expired': service.expired === 'expired' }">
+                        {{ service.status }}
+                      </span>
                     </div>
                     <a-progress
                       :percent="(service.current / service.total) * 100"
                       :show-info="false"
-                      stroke-color="#ff7875"
+                      :stroke-color="service.expired === 'expired' ? '#d9d9d9' : '#ff7875'"
                       class="progress-bar"
                     />
                     <div class="time-remaining">
@@ -109,6 +133,7 @@
                       type="primary"
                       block
                       class="join-button"
+                      :class="{ 'expired-button': service.expired === 'expired' }"
                       @click="joinService(service)"
                       :disabled="service.expired === 'expired'"
                     >
@@ -146,6 +171,7 @@ import axios from "axios";
 const sortBy = ref("createdAt"); // 'platformName' or 'createdAt'
 const sortOrder = ref("desc"); // 'asc' or 'desc'
 const tabType = ref("owner"); // 'owner' (파티장) / 'member' (파티원)
+const statusFilter = ref("active"); // 'active' (활성) / 'expired' (만료)
 const postsOwner = ref([]);
 const postsMember = ref([]);
 const currentPageOwner = ref(0);
@@ -171,6 +197,18 @@ function setTab(type) {
   fetchPosts();
 }
 
+// 상태 필터 변경 핸들러
+function setStatusFilter(status) {
+  statusFilter.value = status;
+  // 페이지를 0으로 리셋
+  if (tabType.value === "owner") {
+    currentPageOwner.value = 0;
+  } else {
+    currentPageMember.value = 0;
+  }
+  fetchPosts();
+}
+
 // 페이지 변경
 function changePage(newPage) {
   if (tabType.value === "owner") {
@@ -181,7 +219,7 @@ function changePage(newPage) {
   fetchPosts();
 }
 
-// 데이터 조회 (탭/정렬/페이지 모두 반영)
+// 데이터 조회 (탭/정렬/페이지/상태 모두 반영)
 async function fetchPosts() {
   const page =
     tabType.value === "owner"
@@ -197,6 +235,7 @@ async function fetchPosts() {
         page,
         sortField: sortBy.value,
         sortDirection: sortOrder.value,
+        statusFilter: statusFilter.value, // 상태 필터 추가
       },
     });
     const posts = response.data.content.map((item) => ({
@@ -221,7 +260,7 @@ async function fetchPosts() {
       totalPagesMember.value = response.data.totalPages;
     }
   } catch (e) {
-    // 에러 처리
+    console.error('데이터 조회 실패:', e);
   }
 }
 
@@ -305,7 +344,6 @@ onMounted(() => {
 .main-tab-section {
   background: white;
   padding: 20px 0 16px;
-  /* border-bottom: 1px solid #f0f0f0; */
 }
 
 .main-tab-container {
@@ -321,24 +359,23 @@ onMounted(() => {
 
 .active-main-tab {
   color: #ff7875 !important;
-  /* border-bottom: 2px solid #ff7875 !important; */
 }
 
-/* 서브 필터 섹션 */
 .filter-section {
-  background: white;
-  padding: 16px 0 24px;
-  /* border-bottom: 1px solid #f0f0f0; */
-}
-
-.filter-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 40px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 24px;
+}
+
+.status-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.active-status {
+  background-color: #52c41a !important;
+  color: white !important;
+  border-color: #52c41a !important;
 }
 
 .filter-tabs {
@@ -360,6 +397,12 @@ onMounted(() => {
 .filter-tab:hover {
   border-color: #ff7875;
   color: #ff7875;
+}
+
+.active-sort {
+  background-color: #ff7875 !important;
+  color: white !important;
+  border-color: #ff7875 !important;
 }
 
 .services-section {
@@ -480,6 +523,12 @@ onMounted(() => {
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.status-badge.expired {
+  background: #fff2f0;
+  color: #ff4d4f;
 }
 
 .progress-bar {
@@ -502,6 +551,7 @@ onMounted(() => {
   background: #ff7875;
   border-color: #ff7875;
   color: white;
+  transition: all 0.3s ease;
 }
 
 .join-button:hover:not(:disabled) {
@@ -510,10 +560,11 @@ onMounted(() => {
   transform: translateY(-1px);
 }
 
-.join-button:disabled {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  color: #bfbfbf;
+.join-button:disabled,
+.join-button.expired-button {
+  background: #f5f5f5 !important;
+  border-color: #d9d9d9 !important;
+  color: #bfbfbf !important;
 }
 
 .pagination {
@@ -548,16 +599,6 @@ onMounted(() => {
   background: white;
 }
 
-.main-tabs {
-  display: flex;
-  gap: 8px;
-}
-
-.filter-tabs {
-  display: flex;
-  gap: 8px;
-}
-
 .filter-button {
   width: 120px;
   padding: 10px;
@@ -565,9 +606,7 @@ onMounted(() => {
   font-weight: bold;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
   background-color: #f0f0f0;
   color: #333333;
   text-align: center;
@@ -606,6 +645,12 @@ onMounted(() => {
     justify-content: flex-start;
     gap: 16px;
     padding: 0 16px;
+  }
+
+  .filter-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .services-container {
