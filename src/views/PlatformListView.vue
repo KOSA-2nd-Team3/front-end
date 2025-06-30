@@ -16,26 +16,6 @@
             <div class="platform-title">
               <h1>{{ platformName }}</h1>
             </div>
-            <div class="platform-actions">
-              <a-button type="text" size="large">
-                <template #icon>
-                  <ShareAltOutlined/>
-                </template>
-                공유
-              </a-button>
-              <a-button type="text" size="large">
-                <template #icon>
-                  <HeartOutlined/>
-                </template>
-                찜목록
-              </a-button>
-              <a-button type="text" size="large">
-                <template #icon>
-                  <QuestionCircleOutlined/>
-                </template>
-                FAQ
-              </a-button>
-            </div>
           </div>
         </div>
 
@@ -150,6 +130,7 @@ const partySize = computed(() => parties.value.length > 0)
 // 플랫폼 정보
 const platformName = ref('0')
 const platformPrice = ref(0)
+const serviceId = route.params.id
 
 // 파티 데이터
 const allParties = ref([])
@@ -355,6 +336,10 @@ const handleScroll = () => {
   }
 }
 
+const handleSubscribeShare = () => {
+  router.push(`/subscription/create/${serviceId}`)
+}
+
 // 필터 상태를 변경
 const setFilter = (filterType) => {
   if (filter.value === filterType) return
@@ -463,21 +448,6 @@ onUnmounted(() => {
   font-size: 24px;
   font-weight: bold;
   color: #333;
-}
-
-.platform-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 8px;
-}
-
-.platform-actions .ant-btn {
-  color: #666;
-  font-size: 14px;
-}
-
-.platform-actions .ant-btn:hover {
-  color: #ff7875;
 }
 
 /* 플랫폼 배너 섹션 */
