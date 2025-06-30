@@ -1,5 +1,5 @@
 <template>
-  <div style="height: calc(100vh - 200px); overflow: hidden;">
+  <div style="height: calc(100vh - 140px); overflow: hidden;">
     <a-layout-header style="height: 64px; line-height: 64px;">
       <div style="color:#fff; font-weight:bold; font-size:24px;">채팅</div>
     </a-layout-header>
@@ -14,7 +14,7 @@
         </div>
         <div style="flex: 1; min-height: 0; overflow: hidden;">
           <a-spin :spinning="loading" style="height: 100%;">
-            <div v-if="chatRooms.length > 0" style="height: 100%; overflow-y: auto; overflow-x: hidden; max-height: calc(100vh - 300px);">
+            <div v-if="chatRooms.length > 0" style="max-height: calc(100vh - 280px); overflow-y: auto; overflow-x: hidden; padding: 0 8px 16px 0;">
               <a-list-item
                   v-for="room in chatRooms"
                   :key="room.roomId"
