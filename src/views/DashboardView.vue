@@ -214,7 +214,7 @@ const currentPage = computed(() => {
 
 // 서비스 참여
 const joinService = (service) => {
-  router.push(`http://localhost:8080/dashboard/${service.id}`)
+  router.push(`/dashboard/${service.id}`)
 }
 
 // 최초 로딩
