@@ -48,17 +48,32 @@
             </div>
           </div>
 
+          <!-- 기존 슬롯 선택 섹션 위에 구독 개월 선택 섹션 추가 -->
+          <div class="subscription-period-section">
+            <h2 class="period-title">구독 개월을 선택해주세요</h2>
+
+            <div class="period-selector">
+              <a-button type="text" class="period-button" :disabled="selectedMonths <= 1" @click="decreaseMonths">
+                <MinusOutlined />
+              </a-button>
+
+              <div class="period-display">
+                <span class="period-number">{{ selectedMonths }}</span>
+                <span class="period-unit">개월</span>
+              </div>
+
+              <a-button type="text" class="period-button" :disabled="selectedMonths >= 12" @click="increaseMonths">
+                <PlusOutlined />
+              </a-button>
+            </div>
+          </div>
+
           <!-- 슬롯 선택 섹션 -->
           <div class="slot-selection-section">
             <h2 class="slot-title">공유할 슬롯은 몇 개입니까?</h2>
 
             <div class="slot-selector">
-              <a-button
-                  type="text"
-                  class="slot-button"
-                  :disabled="selectedSlots <= 1"
-                  @click="decreaseSlots"
-              >
+              <a-button type="text" class="slot-button" :disabled="selectedSlots <= 1" @click="decreaseSlots">
                 <MinusOutlined />
               </a-button>
 
@@ -66,12 +81,8 @@
                 <span class="slot-number">{{ selectedSlots }}</span>
               </div>
 
-              <a-button
-                  type="text"
-                  class="slot-button"
-                  :disabled="selectedSlots >= (serviceInfo.maxMembers - 1)"
-                  @click="increaseSlots"
-              >
+              <a-button type="text" class="slot-button" :disabled="selectedSlots >= (serviceInfo.maxMembers - 1)"
+                @click="increaseSlots">
                 <PlusOutlined />
               </a-button>
             </div>
@@ -84,12 +95,7 @@
 
             <!-- 다음 버튼 -->
             <div class="action-section">
-              <a-button
-                  type="primary"
-                  size="large"
-                  class="next-button"
-                  @click="proceedToNext"
-              >
+              <a-button type="primary" size="large" class="next-button" @click="proceedToNext">
                 다음
               </a-button>
             </div>
@@ -131,9 +137,10 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 // 반응형 데이터
+const selectedMonths = ref(1)
 const selectedSlots = ref(3)
 const loading = ref(false) // 로딩 상태 추가
-
+const totalSubscriptionCost = ref(100000)
 // 서비스 정보를 저장할 ref (이제 API에서 동적으로 로드됨)
 const serviceInfo = ref({
   id: null,
@@ -264,6 +271,18 @@ const decreaseSlots = () => {
   }
 }
 
+const increaseMonths = () => {
+  if (selectedMonths.value < 12) {
+    selectedMonths.value++
+  }
+}
+
+const decreaseMonths = () => {
+  if (selectedMonths.value > 1) {
+    selectedMonths.value--
+  }
+}
+
 const proceedToNext = async () => {
   try {
     loading.value = true
@@ -279,14 +298,15 @@ const proceedToNext = async () => {
       platformId: serviceInfo.value.id,
       capacity: selectedSlots.value + 1, // 파티장 포함 총 인원
       currentCount: 1, // 파티장만 있는 상태
-      loginId: authStore.userInfo.loginId
+      loginId: authStore.userInfo.loginId,
+      durationMonth: selectedMonths.value // 선택된 구독 개월 수 추가
     }
 
     console.log('🚀 구독 생성 API 호출:', subscriptionData)
 
     // 구독 생성 API 호출
     const response = await axios.post('http://localhost:8080/post/subscription/create', subscriptionData)
-    
+
     // 구독 생성 성공 후 채팅방 생성
     try {
       const chatRoomData = {
@@ -294,18 +314,18 @@ const proceedToNext = async () => {
         roomName: serviceInfo.value.name,
         maxMembers: selectedSlots.value + 1 // 파티장 포함 총 인원
       }
-      
+
       console.log('🚀 채팅방 생성 API 호출:', chatRoomData)
-      
+
       await axios.post('http://localhost:8080/room/group/create', chatRoomData)
       console.log('✅ 채팅방 생성 성공')
-      
+
     } catch (chatError) {
       console.error('💥 채팅방 생성 실패:', chatError)
       // 채팅방 생성 실패해도 구독은 성공했으므로 경고 메시지만 표시
       message.warning('구독은 생성되었지만 채팅방 생성에 실패했습니다.')
     }
-    
+
     console.log('✅ 구독 생성 성공:', response.data)
     message.success(`${serviceInfo.value.name} 구독이 성공적으로 생성되었습니다!`)
 
@@ -314,7 +334,7 @@ const proceedToNext = async () => {
 
   } catch (error) {
     console.error('💥 구독 생성 실패:', error)
-    
+
     if (error.response) {
       const { status, data } = error.response
       console.error('📡 서버 응답 오류:', { status, data })
@@ -494,6 +514,83 @@ const proceedToNext = async () => {
   color: #333;
   font-size: 14px;
   font-weight: 600;
+}
+
+/* 구독 개월 선택 섹션 */
+.subscription-period-section {
+  text-align: center;
+  margin-bottom: 40px;
+  padding: 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.period-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin: 0 0 24px 0;
+}
+
+.period-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.period-button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d9d9d9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #666;
+}
+
+.period-display {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.period-number {
+  font-size: 32px;
+  font-weight: bold;
+  color: #333;
+}
+
+.period-unit {
+  font-size: 16px;
+  color: #666;
+}
+
+.monthly-cost-breakdown {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.cost-breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.breakdown-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.breakdown-amount {
+  font-weight: 600;
+  color: #333;
 }
 
 /* 슬롯 선택 섹션 */

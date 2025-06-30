@@ -525,7 +525,8 @@ const startService = async () => {
       console.log('current : ', serviceData.value.currentMembers)
       console.log('Max : ', serviceData.value.maxMembers)
       if(serviceData.value.currentMembers !== serviceData.value.maxMembers){
-        return message.error('파티 멤버가 다 모여야 시작 할 수 있습니다.')
+        message.error('파티 멤버가 다 모여야 시작 할 수 있습니다.')
+        return false // Modal을 즉시 닫기
       }
       try {
         await axios.post(`http://localhost:8080/post/start`, {
