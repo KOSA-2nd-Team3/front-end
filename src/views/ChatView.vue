@@ -1,39 +1,41 @@
 <template>
-  <a-layout style="min-height: 100vh;">
-    <a-layout-header>
+  <div style="height: calc(100vh - 200px); overflow: hidden;">
+    <a-layout-header style="height: 64px; line-height: 64px;">
       <div style="color:#fff; font-weight:bold; font-size:24px;">채팅</div>
     </a-layout-header>
 
-    <a-layout style="height: calc(100vh - 64px);">
-      <a-layout-sider width="250" theme="light" style="border-right: 1px solid #eee;">
-        <div style="padding:20px 16px; border-bottom:1px solid #eee;">
+    <a-layout style="height: calc(100% - 64px);">
+      <a-layout-sider width="250" theme="light" style="border-right: 1px solid #eee; display: flex; flex-direction: column;">
+        <div style="padding:20px 16px; border-bottom:1px solid #eee; flex-shrink: 0;">
           <a-typography-title :level="4" style="margin:0;">
             채팅방
-            <a-badge :count="chatRooms.length" size="small" :offset="[8, -2]" style="background-color: #ff4d4f;" />
+            <a-badge :count="chatRooms.length" size="small" :offset="[8, -2]" style="background-color: #333; color: white;" />
           </a-typography-title>
         </div>
-        <a-spin :spinning="loading">
-          <div v-if="chatRooms.length > 0">
-            <a-list-item
-                v-for="room in chatRooms"
-                :key="room.roomId"
-                :class="{ 'ant-list-item-selected': selectedRoomId === room.roomId }"
-                style="cursor:pointer; padding:16px;"
-                @click="selectRoom(room)"
-            >
-              <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-                <div>
-                  <div style="font-weight:500;">{{ room.serviceName }}</div>
-                  <div style="color:#888; font-size:13px; margin-top:2px;">{{ room.createdAt }}</div>
+        <div style="flex: 1; min-height: 0; overflow: hidden;">
+          <a-spin :spinning="loading" style="height: 100%;">
+            <div v-if="chatRooms.length > 0" style="height: 100%; overflow-y: auto; overflow-x: hidden; max-height: calc(100vh - 300px);">
+              <a-list-item
+                  v-for="room in chatRooms"
+                  :key="room.roomId"
+                  :class="{ 'ant-list-item-selected': selectedRoomId === room.roomId }"
+                  style="cursor:pointer; padding:16px; border-bottom: 1px solid #f0f0f0;"
+                  @click="selectRoom(room)"
+              >
+                <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                  <div>
+                    <div style="font-weight:500;">{{ room.serviceName }}</div>
+                    <div style="color:#888; font-size:13px; margin-top:2px;">{{ room.createdAt }}</div>
+                  </div>
+                  <a-badge v-if="room.unreadCount && room.unreadCount > 0" :count="room.unreadCount" size="small" />
                 </div>
-                <a-badge v-if="room.unreadCount && room.unreadCount > 0" :count="room.unreadCount" size="small" />
-              </div>
-            </a-list-item>
-          </div>
-          <div v-else-if="!loading" style="padding:40px 20px; text-align:center;">
-            채팅방이 없습니다.
-          </div>
-        </a-spin>
+              </a-list-item>
+            </div>
+            <div v-else-if="!loading" style="padding:40px 20px; text-align:center;">
+              채팅방이 없습니다.
+            </div>
+          </a-spin>
+        </div>
       </a-layout-sider>
 
       <a-layout>
@@ -105,7 +107,7 @@
                 <div>
                   <div style="font-weight:500; font-size:14px;">{{ member.loginId }}</div>
                 </div>
-                <a-tag v-if="member.isLeader" color="orange" size="small">파티장</a-tag>
+                <a-tag v-if="member.leaderYn === 'Y'" color="orange" size="small">파티장</a-tag>
                 <a-tag v-else color="blue" size="small">파티원</a-tag>
               </div>
             </div>
@@ -116,7 +118,7 @@
         </a-layout-sider>
       </a-layout>
     </a-layout>
-  </a-layout>
+  </div>
 </template>
 
 <script setup>
