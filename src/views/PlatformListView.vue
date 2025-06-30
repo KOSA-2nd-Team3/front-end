@@ -126,7 +126,9 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const loginId = computed(() => authStore.userInfo?.loginId)
-const partySize = computed(() => parties.value.length > 0)
+const filteredParties = computed(() => {
+  return allParties.value.filter(party => !party.startDate);
+})
 // 플랫폼 정보
 const platformName = ref('0')
 const platformPrice = ref(0)
@@ -149,10 +151,10 @@ const filter = ref('newest')
 
 // computed로 필터링된 파티 목록 정렬
 const sortedParties = computed(() => {
-  if (!allParties.value || allParties.value.length === 0) {
+  if (!filteredParties.value || filteredParties.value.length === 0) {
     return []
   }
-  const sorted = [...allParties.value].sort((a, b) => {
+  const sorted = [...filteredParties.value].sort((a, b) => {
     if (filter.value === 'newest') {
       return new Date(b.createdAt) - new Date(a.createdAt) // 최신순
     } else if (filter.value === 'oldest') {
