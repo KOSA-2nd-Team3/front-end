@@ -216,7 +216,7 @@ const currentPage = computed(() => {
 
 // 서비스 참여
 const joinService = (service) => {
-  router.push(`dashboard/${service.id}`)
+  router.push(`/dashboard/${service.id}`)
 }
 
 // 날짜 차이를 계산
