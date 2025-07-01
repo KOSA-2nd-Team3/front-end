@@ -190,7 +190,7 @@ const loadPlatformDetail = async (platformId) => {
     console.log('🚀 플랫폼 상세 정보 API 호출 중:', platformId)
 
     // 백엔드 API 호출
-    const response = await axios.get(`/api/list/platforms/${platformId}`)
+    const response = await axios.get(`/api/platforms/${platformId}`)
     const platformData = response.data
 
     console.log('📡 API 응답 데이터:', platformData)
@@ -307,7 +307,7 @@ const proceedToNext = async () => {
     console.log('🚀 구독 생성 API 호출:', subscriptionData)
 
     // 구독 생성 API 호출
-    const response = await axios.post('http://localhost:8080/post/subscription/create', subscriptionData)
+    const response = await axios.post('/api/subscription/create', subscriptionData)
 
     // 구독 생성 성공 후 채팅방 생성
     try {

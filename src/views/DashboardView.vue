@@ -227,8 +227,8 @@ async function fetchPosts() {
       : currentPageMember.value;
   const apiUrl =
     tabType.value === "owner"
-      ? "http://localhost:8080/post/myPost"
-      : "http://localhost:8080/post/myPost-join";
+      ? "/api/dashboard/my-parties"
+      : "/api/dashboard/participated-parties";
   try {
     const response = await axios.get(apiUrl, {
       params: {
