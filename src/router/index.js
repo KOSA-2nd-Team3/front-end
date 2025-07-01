@@ -95,11 +95,16 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
     const authStore = useAuthStore()
 
-    // 저장된 토큰이 있으면 인증 상태 확인
+    // 인증 상태 확인 (액세스 토큰이 없어도 리프레시 토큰으로 복구 시도)
     const token = authStore.getToken()
-    if (token && !authStore.isAuthenticated) {
-        // 토큰은 있지만 store의 인증 상태가 false인 경우 (페이지 새로고침 등)
-        console.log('🔄 토큰 있음, 인증 상태 재확인 중...')
+    if (!authStore.isAuthenticated) {
+        if (token) {
+            // 토큰은 있지만 store의 인증 상태가 false인 경우 (페이지 새로고침 등)
+            console.log('🔄 액세스 토큰 있음, 인증 상태 재확인 중...')
+        } else {
+            // 액세스 토큰 없음, 리프레시 토큰으로 복구 시도
+            console.log('🔄 액세스 토큰 없음, 리프레시 토큰으로 복구 시도 중...')
+        }
         await authStore.checkAuthStatus()
     }
 

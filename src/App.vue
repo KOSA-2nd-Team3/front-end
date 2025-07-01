@@ -68,17 +68,16 @@ const currentPage = computed(() => {
 
 // 라이프사이클
 onMounted(async () => {
-  // 앱 시작시 인증 상태 확인
-  const token = authStore.getToken()
-  if (token) {
-    globalLoading.value = true
-    try {
-      await authStore.checkAuthStatus()
-    } catch (error) {
-      console.error('❌ 인증 상태 확인 실패:', error)
-    } finally {
-      globalLoading.value = false
-    }
+  // 앱 시작시 인증 상태 확인 (router guard에서 이미 수행하므로 중복 호출 방지)
+  globalLoading.value = true
+  try {
+    // 토큰만 로드하고 실제 인증 확인은 router guard에서 처리
+    authStore.loadToken()
+    console.log('✅ 앱 시작 시 토큰 로드 완료')
+  } catch (error) {
+    console.error('❌ 토큰 로드 실패:', error)
+  } finally {
+    globalLoading.value = false
   }
 })
 
@@ -105,18 +104,39 @@ window.addEventListener('unhandledrejection', (event) => {
   message.error('예상치 못한 오류가 발생했습니다.')
 })
 
-// axios 전역 에러 핸들링 (401 unauthorized 처리)
+// axios 전역 에러 핸들링 (401 unauthorized 처리 + 자동 토큰 갱신)
 axios.interceptors.response.use(
     (response) => response,
-    (error) => {
-      if (error.response?.status === 401) {
-        authStore.clearToken()
-        authStore.isAuthenticated = false
-        authStore.userInfo = null
+    async (error) => {
+      const originalRequest = error.config
 
-        if (!isPublicRoute.value) {
-          message.warning('로그인이 만료되었습니다. 다시 로그인해주세요.')
-          router.push('/login')
+      // 로그아웃 요청인 경우 토큰 갱신 시도하지 않음
+      if (originalRequest.headers?.['X-Skip-Auth-Refresh']) {
+        return Promise.reject(error)
+      }
+
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true
+
+        try {
+          // 토큰 갱신 시도
+          await authStore.refreshToken()
+          console.log('🔄 토큰 갱신 후 요청 재시도')
+          
+          // 원래 요청 재시도
+          return axios(originalRequest)
+        } catch (refreshError) {
+          // 리프레시 실패 시 로그아웃
+          console.error('❌ 토큰 갱신 실패, 로그아웃 처리')
+          authStore.clearToken()
+          authStore.isAuthenticated = false
+          authStore.userInfo = null
+
+          if (!isPublicRoute.value) {
+            message.warning('로그인이 만료되었습니다. 다시 로그인해주세요.')
+            router.push('/login')
+          }
+          return Promise.reject(refreshError)
         }
       }
       return Promise.reject(error)

@@ -61,7 +61,7 @@
                     <UserOutlined />
                     프로필
                   </a-menu-item>
-                  <a-menu-item key="logout" @click="handleLogout">
+                  <a-menu-item key="logout">
                     <LogoutOutlined />
                     로그아웃
                   </a-menu-item>
@@ -141,10 +141,12 @@
     }
   }
 
-  const handleMenuClick = ({key}) => {
+  const handleMenuClick = async ({key}) => {
     emit('menu-click')
     if (key === 'profile') {
       router.push('/profile')
+    } else if (key === 'logout') {
+      await handleLogout()
     }
   }
   </script>
