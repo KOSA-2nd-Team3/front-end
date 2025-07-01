@@ -31,7 +31,38 @@
               </div>
               <div class="table-row">
                 <div class="table-label">닉네임</div>
-                <div class="table-value">{{ profileData.nickname || '-' }}</div>
+                <div class="table-value-with-action">
+                  <!-- 닉네임 편집 모드가 아닐 때 -->
+                  <div v-if="!isEditingNickname" class="value-display">
+                    <span class="value-text">{{ profileData.nickname || '-' }}</span>
+                    <button @click="startEditNickname" class="edit-button">변경</button>
+                  </div>
+
+                  <!-- 닉네임 편집 모드일 때 -->
+                  <div v-else class="value-edit">
+                    <input
+                      v-model="newNickname"
+                      type="text"
+                      class="nickname-input"
+                      :class="{ 'error': nicknameError }"
+                      placeholder="새 닉네임을 입력하세요"
+                      @input="clearNicknameError"
+                      @keyup.enter="updateNickname"
+                      @keyup.escape="cancelEditNickname"
+                    />
+                    <div class="edit-actions">
+                      <button
+                        @click="updateNickname"
+                        :disabled="nicknameLoading || !newNickname.trim()"
+                        class="save-button"
+                      >
+                        {{ nicknameLoading ? '확인 중...' : '저장' }}
+                      </button>
+                      <button @click="cancelEditNickname" class="cancel-button">취소</button>
+                    </div>
+                    <div v-if="nicknameError" class="error-message">{{ nicknameError }}</div>
+                  </div>
+                </div>
               </div>
               <div class="table-row">
                 <div class="table-label">이메일</div>
@@ -65,6 +96,12 @@ const profileData = ref({
 const loading = ref(false)
 const error = ref('')
 
+// 닉네임 편집 관련 상태
+const isEditingNickname = ref(false)
+const newNickname = ref('')
+const nicknameLoading = ref(false)
+const nicknameError = ref('')
+
 // 프로필 정보 가져오기
 const fetchProfile = async () => {
   loading.value = true
@@ -90,6 +127,100 @@ const fetchProfile = async () => {
     }
   } finally {
     loading.value = false
+  }
+}
+
+// 닉네임 편집 시작
+const startEditNickname = () => {
+  isEditingNickname.value = true
+  newNickname.value = profileData.value.nickname || ''
+  nicknameError.value = ''
+}
+
+// 닉네임 편집 취소
+const cancelEditNickname = () => {
+  isEditingNickname.value = false
+  newNickname.value = ''
+  nicknameError.value = ''
+}
+
+// 닉네임 에러 메시지 클리어
+const clearNicknameError = () => {
+  nicknameError.value = ''
+}
+
+// 닉네임 중복 체크
+const checkNickname = async (nickname) => {
+  try {
+    const response = await axios.post('http://localhost:8080/member/nickname', {
+      nickname: nickname
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    return response.data // true면 사용 가능, false면 중복
+  } catch (err) {
+    console.error('닉네임 중복 체크 실패:', err)
+    throw new Error('닉네임 중복 체크에 실패했습니다.')
+  }
+}
+
+// 닉네임 업데이트
+const updateNickname = async () => {
+  if (!newNickname.value.trim()) {
+    nicknameError.value = '닉네임을 입력해주세요.'
+    return
+  }
+
+  if (newNickname.value.trim() === profileData.value.nickname) {
+    nicknameError.value = '현재 닉네임과 동일합니다.'
+    return
+  }
+
+  nicknameLoading.value = true
+  nicknameError.value = ''
+
+  try {
+    // 1. 닉네임 중복 체크
+    const isAvailable = await checkNickname(newNickname.value.trim())
+
+    if (!isAvailable) {
+      nicknameError.value = '이미 사용 중인 닉네임입니다.'
+      return
+    }
+
+    // 2. 닉네임 업데이트
+    const response = await axios.put('http://localhost:8080/member/nickname', {
+      nickname: newNickname.value.trim(),
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    // 3. 성공 시 프로필 데이터 업데이트
+    profileData.value.nickname = response.data
+    isEditingNickname.value = false
+    newNickname.value = ''
+
+    message.success('닉네임이 성공적으로 변경되었습니다.')
+
+  } catch (err) {
+    console.error('닉네임 변경 실패:', err)
+
+    if (err.response?.status === 401) {
+      nicknameError.value = '인증이 만료되었습니다. 다시 로그인해주세요.'
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
+    } else if (err.response?.status === 404) {
+      nicknameError.value = '사용자 정보를 찾을 수 없습니다.'
+    } else {
+      nicknameError.value = err.message || '닉네임 변경에 실패했습니다.'
+    }
+  } finally {
+    nicknameLoading.value = false
   }
 }
 
@@ -215,6 +346,115 @@ onMounted(() => {
   flex: 1;
 }
 
+/* 닉네임 관련 스타일 */
+.table-value-with-action {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.value-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.value-text {
+  font-size: 16px;
+  color: #666;
+}
+
+.edit-button {
+  padding: 6px 12px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.edit-button:hover {
+  background: #40a9ff;
+}
+
+.value-edit {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.nickname-input {
+  width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.nickname-input:focus {
+  outline: none;
+  border-color: #1890ff;
+}
+
+.nickname-input.error {
+  border-color: #ff4d4f;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.save-button {
+  padding: 6px 12px;
+  background: #52c41a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #73d13d;
+}
+
+.save-button:disabled {
+  background: #d9d9d9;
+  cursor: not-allowed;
+}
+
+.cancel-button {
+  padding: 6px 12px;
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.cancel-button:hover {
+  background: #ff7875;
+}
+
+.error-message {
+  font-size: 12px;
+  color: #ff4d4f;
+  text-align: right;
+  width: 100%;
+}
+
 /* 반응형 디자인 */
 @media (max-width: 1200px) {
   .content-container {
@@ -245,7 +485,25 @@ onMounted(() => {
     gap: 8px;
   }
 
-  .table-value {
+  .table-value, .table-value-with-action {
+    text-align: left;
+    align-items: flex-start;
+  }
+
+  .value-display {
+    justify-content: flex-start;
+  }
+
+  .value-edit {
+    align-items: flex-start;
+  }
+
+  .nickname-input {
+    width: 100%;
+    max-width: 250px;
+  }
+
+  .error-message {
     text-align: left;
   }
 }
