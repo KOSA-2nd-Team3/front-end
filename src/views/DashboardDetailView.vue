@@ -270,7 +270,7 @@ const serviceData = ref({})
 const fetchDetail = async () => {
   try {
     const response = await axios.get(
-      `http://localhost:8080/post/myPost/${postId}`, { params: { loginId: loginId.value } }
+      `/api/dashboard/my-parties/${postId}`, { params: { loginId: loginId.value } }
     );
     const item = response.data;
     console.log('item:', item);
@@ -337,7 +337,7 @@ const onDurationChange = (value) => {
     okText: '네',
     cancelText: '아니오',
     async onOk() {
-      await axios.post('http://localhost:8080/post/update', {
+      await axios.post('/api/post/update', {
         postId: postId,
         loginId: loginId.value,
         durationMonth: value,
@@ -378,7 +378,7 @@ const saveAccountInfo = async () => {
     }
 
     // API 호출하여 계정 정보 업데이트
-    await axios.post('http://localhost:8080/post/update', {
+    await axios.post('/api/post/update', {
       postId: postId,
       loginId: loginId.value,
       email: editingAccount.email,
@@ -521,7 +521,7 @@ const startService = async () => {
         return false // Modal을 즉시 닫기
       }
       try {
-        await axios.post(`http://localhost:8080/post/start`, {
+        await axios.post(`/api/dashboard/my-parties/start`, {
           postId: postId,
           durationMonth: durationMonth.value
         });
@@ -548,7 +548,7 @@ const stopSharing = () => {
           const roomId = roomResponse.data.chatRoomId;
 
           // 2. 파티 삭제
-          await axios.delete(`http://localhost:8080/post/${serviceData.value.id}`, {
+          await axios.delete(`/api/post/${serviceData.value.id}/out`, {
             data: { loginId: loginId.value }
           });
 
@@ -577,7 +577,7 @@ const outSharing = () => {
           const roomId = roomResponse.data.chatRoomId;
 
           // 2. 파티 탈퇴
-          await axios.delete(`http://localhost:8080/post/${serviceData.value.id}`, {
+          await axios.delete(`/api/post/${serviceData.value.id}/out`, {
             data: { loginId: loginId.value }
           });
 

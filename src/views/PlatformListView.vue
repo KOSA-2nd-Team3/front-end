@@ -199,7 +199,7 @@ const loadInitialData = async () => {
 
   try {
     const platformId = route.params.id;
-    const response = await axios.get(`/api/list/platform/${platformId}`)
+    const response = await axios.get(`/api/platforms/${platformId}/post`)
     allParties.value = response.data // 모든 원본 데이터 저장
 
     if (allParties.value.length > 0) {
@@ -207,7 +207,7 @@ const loadInitialData = async () => {
       platformName.value = firstParty.platformName
       platformPrice.value = firstParty.platformPrice
     } else {
-      const null_response = await axios.get(`/api/list/platform/${platformId}/`)
+      const null_response = await axios.get(`/api/platform/${platformId}/`)
       platformName.value = null_response.data.platformName
       platformPrice.value = null_response.data.platformPrice
       hasMore.value = false
@@ -270,7 +270,7 @@ const handleJoinParty = async (party) => {
     return
   }
   try {
-    await axios.post('http://localhost:8080/post/joinParty', {
+    await axios.post('/api/post/join', {
       postId: party.postId,
       loginId: loginId.value,
       isOwner: "N"
@@ -295,7 +295,7 @@ const handleJoinParty = async (party) => {
   if (party.currentCount == party.partySize) {
     const postId = party.postId
     try {
-      await axios.get(`http://localhost:8080/post/mailSend/${postId}`);
+      await axios.get(`/api/post/send-mail/${postId}`);
     } catch (error) {
       console.error('메일 전송 실패:', error);
       if (error.code === 'ECONNABORTED') {

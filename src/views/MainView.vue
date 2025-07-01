@@ -108,9 +108,9 @@ const services = ref([])
 // API로 서비스 목록 가져오기
 const fetchServices = async () => {
   try {
-    let url = '/api/list/main'
+    let url = '/api/platforms/main'
     if (activeCategory.value !== 'all') {
-      url = `/api/list/category/${activeCategory.value}`
+      url = `/api/platforms/category/${activeCategory.value}`
     }
 
     const res = await axios.get(url)
