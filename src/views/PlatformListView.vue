@@ -199,7 +199,7 @@ const loadInitialData = async () => {
 
   try {
     const platformId = route.params.id;
-    const response = await axios.get(`http://localhost:8080/post/platform/${platformId}`)
+    const response = await axios.get(`/api/list/platform/${platformId}`)
     allParties.value = response.data // 모든 원본 데이터 저장
 
     if (allParties.value.length > 0) {
@@ -207,7 +207,7 @@ const loadInitialData = async () => {
       platformName.value = firstParty.platformName
       platformPrice.value = firstParty.platformPrice
     } else {
-      const null_response = await axios.get(`http://localhost:8080/post/platform/${platformId}/`)
+      const null_response = await axios.get(`/api/list/platform/${platformId}/`)
       platformName.value = null_response.data.platformName
       platformPrice.value = null_response.data.platformPrice
       hasMore.value = false
