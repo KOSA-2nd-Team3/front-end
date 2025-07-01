@@ -307,7 +307,7 @@ const proceedToNext = async () => {
     console.log('🚀 구독 생성 API 호출:', subscriptionData)
 
     // 구독 생성 API 호출
-    const response = await axios.post('/api/subscription/create', subscriptionData)
+    const response = await axios.post('/api/post/create', subscriptionData)
 
     // 구독 생성 성공 후 채팅방 생성
     try {

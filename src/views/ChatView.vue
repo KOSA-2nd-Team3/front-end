@@ -101,11 +101,11 @@
             <div v-if="roomMembers.length > 0" style="padding:8px;">
               <div 
                 v-for="member in roomMembers" 
-                :key="member.loginId"
+                :key="member.nickName"
                 style="padding:8px 12px; border-radius:6px; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between;"
               >
                 <div>
-                  <div style="font-weight:500; font-size:14px;">{{ member.loginId }}</div>
+                  <div style="font-weight:500; font-size:14px;">{{ member.nickName }}</div>
                 </div>
                 <a-tag v-if="member.leaderYn === 'Y'" color="orange" size="small">파티장</a-tag>
                 <a-tag v-else color="blue" size="small">파티원</a-tag>
