@@ -44,7 +44,7 @@
               <a-col :xs="24" :sm="12" :md="8" :lg="6" v-for="service in popularServices" :key="service.id">
                 <div class="service-card" @click="joinService(service)">
                   <div class="service-icon">
-                    <img :src="service.icon" :alt="service.name" />
+                    <div class="service-initials">{{ service.initials }}</div>
                   </div>
                   <div class="service-info">
                     <h4 class="service-name">{{ service.name }}</h4>
@@ -146,7 +146,8 @@ const popularServices = ref([
     current: 3,
     total: 4,
     status: 'recruiting',
-    icon: '/api/placeholder/60/60?text=N'
+    icon: null,
+    initials: 'N'
   },
   {
     id: 2,
@@ -155,7 +156,8 @@ const popularServices = ref([
     current: 4,
     total: 4,
     status: 'popular',
-    icon: '/api/placeholder/60/60?text=D+'
+    icon: null,
+    initials: 'D+'
   },
   {
     id: 3,
@@ -164,7 +166,8 @@ const popularServices = ref([
     current: 2,
     total: 6,
     status: 'recruiting',
-    icon: '/api/placeholder/60/60?text=ATV'
+    icon: null,
+    initials: 'ATV'
   },
   {
     id: 4,
@@ -173,7 +176,8 @@ const popularServices = ref([
     current: 5,
     total: 6,
     status: 'popular',
-    icon: '/api/placeholder/60/60?text=SP'
+    icon: null,
+    initials: 'SP'
   },
   {
     id: 5,
@@ -182,7 +186,8 @@ const popularServices = ref([
     current: 1,
     total: 4,
     status: 'recruiting',
-    icon: '/api/placeholder/60/60?text=YT'
+    icon: null,
+    initials: 'YT'
   },
   {
     id: 6,
@@ -191,7 +196,8 @@ const popularServices = ref([
     current: 3,
     total: 4,
     status: 'recruiting',
-    icon: '/api/placeholder/60/60?text=W'
+    icon: null,
+    initials: 'W'
   },
   {
     id: 7,
@@ -200,7 +206,8 @@ const popularServices = ref([
     current: 2,
     total: 3,
     status: 'recruiting',
-    icon: '/api/placeholder/60/60?text=MAX'
+    icon: null,
+    initials: 'MAX'
   },
   {
     id: 8,
@@ -209,7 +216,8 @@ const popularServices = ref([
     current: 4,
     total: 5,
     status: 'popular',
-    icon: '/api/placeholder/60/60?text=R'
+    icon: null,
+    initials: 'R'
   }
 ])
 
@@ -473,10 +481,10 @@ const joinService = (service) => {
   overflow: hidden;
 }
 
-.service-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.service-initials {
+  font-size: 16px;
+  font-weight: 600;
+  color: #69b7ff;
 }
 
 .service-name {

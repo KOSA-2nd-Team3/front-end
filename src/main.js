@@ -11,6 +11,7 @@ import axios from 'axios'
 axios.defaults.timeout = 10000 // 10초 타임아웃
 axios.defaults.headers.post['Content-Type'] = 'application/json'
 axios.defaults.headers.common['Accept'] = 'application/json'
+axios.defaults.withCredentials = true // 쿠키 자동 전송 (리프레시 토큰용)
 
 // 요청 인터셉터
 axios.interceptors.request.use(
