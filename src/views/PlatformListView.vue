@@ -61,11 +61,11 @@
                   <div class="user-header">
                     <div class="user-avatar">
                       <a-avatar :size="48">
-                        {{ party.leaderName.charAt(0) }}
+                        {{ party.nickName.charAt(0) }}
                       </a-avatar>
                     </div>
                     <div class="user-info">
-                      <h3 class="user-name">{{ party.leaderName }}</h3>
+                      <h3 class="user-name">{{ party.nickName }}</h3>
                       <p class="user-plan">{{ party.platformName }} {{ party.durationMonth }}개월</p>
                       <p class="registration-time">{{ getTimeAgo(party.createdAt) }}</p>
                     </div>
