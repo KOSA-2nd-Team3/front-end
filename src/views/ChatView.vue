@@ -24,7 +24,7 @@
               >
                 <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                   <div>
-                    <div style="font-weight:500;">{{ room.serviceName }}</div>
+                    <div style="font-weight:500;">{{ room.roomName }}</div>
                     <div style="color:#888; font-size:13px; margin-top:2px;">{{ room.createdAt }}</div>
                   </div>
                   <a-badge v-if="room.unreadCount && room.unreadCount > 0" :count="room.unreadCount" size="small" />
