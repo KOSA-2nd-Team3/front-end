@@ -246,26 +246,8 @@ const durationMarks = {
   12: '12개월'
 }
 
-// 예약 상태 관리 - 이 부분이 누락되어 있었음
-const reservedSlots = ref([
-  // {
-  //   id: 'reserved-1',
-  //   reservedBy: 'user123',
-  //   reservedAt: new Date(),
-  //   status: 'reserved'
-  // }
-])
-
-
 // 서비스 데이터 - 예약된 슬롯도 포함해서 카운트
 const serviceData = ref({})
-
-// id: 1,
-// name: 'Peacock 플러스',
-// price: 4469,
-// icon: 'https://logos-world.net/wp-content/uploads/2021/08/Peacock-Logo.png',
-// currentMembers: 1 + reservedSlots.value.length, // 파티장 1 + 예약됨 1 = 2
-//})
 
 const fetchDetail = async () => {
   try {
@@ -399,21 +381,9 @@ const saveAccountInfo = async () => {
 
 // 빈 슬롯 계산 로직 - 이 부분이 제대로 구현되지 않았음
 const emptySlots = computed(() => {
-  const totalOccupied = members.value.length + reservedSlots.value.length
+  const totalOccupied = members.value.length
   const remainingSlots = serviceData.value.maxMembers - totalOccupied
   const slots = []
-
-  // 예약된 슬롯들 추가
-  reservedSlots.value.forEach((reservation) => {
-    slots.push({
-      id: reservation.id,
-      title: '예약됨',
-      description: '접근 해제 후 사용',
-      icon: 'LockOutlined',
-      type: 'reserved',
-      reservationData: reservation
-    })
-  })
 
   // 나머지 무료 슬롯들 추가
   for (let i = 0; i < remainingSlots; i++) {
@@ -421,61 +391,11 @@ const emptySlots = computed(() => {
       id: `free-${i + 1}`,
       title: '무료',
       description: '가입 대기 중',
-      // icon: 'UserOutlined',
       type: 'free'
     })
   }
-
   return slots
 })
-
-// 나머지 함수들 구현
-const handleSlotAction = (slot) => {
-  if (slot.type === 'reserved') {
-    Modal.confirm({
-      title: '예약을 해제하시겠습니까?',
-      content: '예약이 해제되면 다른 사용자가 이 슬롯을 사용할 수 있습니다.',
-      okText: '해제',
-      cancelText: '취소',
-      onOk() {
-        cancelReservation(slot.id)
-      }
-    })
-  } else if (slot.type === 'free') {
-    Modal.confirm({
-      title: '친구를 초대하시겠습니까?',
-      content: '초대하면 이 슬롯이 예약됩니다.',
-      okText: '초대',
-      cancelText: '취소',
-      onOk() {
-        inviteFriend()
-      }
-    })
-  }
-}
-
-const cancelReservation = (reservationId) => {
-  const index = reservedSlots.value.findIndex(slot => slot.id === reservationId)
-  if (index !== -1) {
-    reservedSlots.value.splice(index, 1)
-    serviceData.value.currentMembers = members.value.length + reservedSlots.value.length
-    message.success('예약이 해제되었습니다.')
-  }
-}
-
-const inviteFriend = () => {
-  const newReservation = {
-    id: `reserved-${Date.now()}`,
-    reservedBy: 'invited-user',
-    reservedAt: new Date(),
-    status: 'reserved'
-  }
-
-  reservedSlots.value.push(newReservation)
-  serviceData.value.currentMembers = members.value.length + reservedSlots.value.length
-
-  message.success('친구 초대가 완료되었습니다. 슬롯이 예약되었습니다.')
-}
 
 const formatDate = (dateString) => {
   if (!dateString) return '';

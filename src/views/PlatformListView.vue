@@ -240,7 +240,7 @@ const appendPartiesFromSortedData = () => {
     if (parties.value.length >= sortedParties.value.length) {
       hasMore.value = false;
       if (allParties.value.length > 0) {
-        message.info('모든 파티를 불러왔습니다.', 5)
+        message.info('모든 파티를 불러왔습니다.', 2)
       }
     } else {
       hasMore.value = true
