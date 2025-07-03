@@ -56,7 +56,7 @@
                       :style="{textAlign: msg.senderLoginId === senderLoginId ? 'right':'left', marginBottom:'18px'}"
                   >
                     <div>
-                      <b>{{ msg.senderLoginId }}</b>
+                      <b>{{ msg.senderNickName || msg.senderLoginId }}</b>
                       <span v-if="msg.senderLoginId == selectedRoom.leaderId" style="color:orange; font-size:13px; margin-left:4px;">(파티장)</span>
                       <span v-else style="color:#666; font-size:13px; margin-left:4px;">(파티원)</span>
                     </div>
@@ -143,6 +143,7 @@ const stompClient = ref(null)
 const connected = ref(false)
 const subscription = ref(null)
 const senderLoginId = ref(null)
+const senderNickName = ref(null)
 const messageBox = ref(null)
 const roomMembers = ref([])
 const membersLoading = ref(false)
@@ -174,19 +175,24 @@ onMounted(async () => {
   // 우선순위: 스토어 → localStorage → 기본값
   if (fromStore) {
     senderLoginId.value = fromStore
+    senderNickName.value = authStore.userInfo?.nickName || fromStore
   } else if (fromLocalStorage) {
     senderLoginId.value = fromLocalStorage
+    senderNickName.value = localStorage.getItem('nickName') || fromLocalStorage
   } else if (hasToken) {
     // 토큰은 있지만 loginId가 없는 경우 - 인증 상태 재확인
     await authStore.checkAuthStatus()
 
     if (authStore.userInfo?.loginId) {
       senderLoginId.value = authStore.userInfo.loginId
+      senderNickName.value = authStore.userInfo?.nickName || authStore.userInfo.loginId
     } else {
       senderLoginId.value = 'unknown_user'
+      senderNickName.value = 'unknown_user'
     }
   } else {
     senderLoginId.value = null
+    senderNickName.value = null
   }
 
   await fetchChatRooms()
@@ -366,8 +372,13 @@ const sendMessage = () => {
     return
   }
 
+  // roomMembers에서 현재 사용자의 닉네임 찾기
+  const currentUserMember = roomMembers.value.find(member => member.loginId === senderLoginId.value)
+  const currentUserNickName = currentUserMember?.nickName || senderLoginId.value
+
   const message = {
     senderLoginId: senderLoginId.value,
+    senderNickName: currentUserNickName,
     message: newMessage.value.trim(),
   }
 
@@ -437,6 +448,7 @@ const handleVisibilityChange = async () => {
     }
   }
 }
+
 </script>
 
 <style scoped>
