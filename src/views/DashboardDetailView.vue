@@ -415,7 +415,7 @@ const goBack = () => {
 const joinGroupChat = async () => {
   try {
     // postId로 roomId 찾기
-    const response = await axios.get(`http://localhost:8080/api/chat/room-by-post/${postId}`)
+    const response = await axios.get(`/api/chat/room-by-post/${postId}`)
     const roomId = response.data.chatRoomId
 
     // roomId로 ChatView 이동
@@ -464,16 +464,17 @@ const stopSharing = () => {
       async onOk() {
         try {
           // 1. roomId 먼저 획득
-          const roomResponse = await axios.get(`http://localhost:8080/api/chat/room-by-post/${postId}`);
+          const roomResponse = await axios.get(`/api/chat/room-by-post/${postId}`);
           const roomId = roomResponse.data.chatRoomId;
 
+          // 3. 채팅방 삭제
+          await axios.delete(`/api/chat-room/${roomId}`);
+          
           // 2. 파티 삭제
           await axios.delete(`/api/post/${serviceData.value.id}/out`, {
             data: { loginId: loginId.value }
           });
 
-          // 3. 채팅방 삭제
-          await axios.delete(`http://localhost:8080/chat-room/${roomId}`);
 
           message.success('파티가 삭제되었습니다.');
           router.push('/dashboard');
@@ -493,7 +494,7 @@ const outSharing = () => {
     async onOk() {
       try {
           // 1. roomId 먼저 획득
-          const roomResponse = await axios.get(`http://localhost:8080/api/chat/room-by-post/${postId}`);
+          const roomResponse = await axios.get(`/api/chat/room-by-post/${postId}`);
           const roomId = roomResponse.data.chatRoomId;
 
           // 2. 파티 탈퇴
@@ -502,7 +503,7 @@ const outSharing = () => {
           });
 
           // 3. 채팅방 탈퇴
-          await axios.delete(`http://localhost:8080/chat-room/${roomId}/leave`);
+          await axios.delete(`/api/chat-room/${roomId}/leave`);
 
           message.success('파티와 채팅방이 탈퇴되었습니다.');
           router.push('/dashboard');

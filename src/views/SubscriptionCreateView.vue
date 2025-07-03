@@ -319,7 +319,7 @@ const proceedToNext = async () => {
 
       console.log('🚀 채팅방 생성 API 호출:', chatRoomData)
 
-      await axios.post('http://localhost:8080/room/group/create', chatRoomData)
+      await axios.post('/api/room/group/create', chatRoomData)
       console.log('✅ 채팅방 생성 성공')
 
     } catch (chatError) {

@@ -172,13 +172,13 @@ const handleSocialLogin = (provider) => {
   let url = '';
   switch (provider) {
     case 'google':
-      url = 'http://localhost:8080/oauth2/authorization/google';
+      url = '/api/oauth2/authorization/google';
       break;
     case 'kakao':
-      url = 'http://localhost:8080/oauth2/authorization/kakao';
+      url = '/api/oauth2/authorization/kakao';
       break;
     case 'naver':
-      url = 'http://localhost:8080/oauth2/authorization/naver';
+      url = '/api/oauth2/authorization/naver';
       break;
     default:
       return;

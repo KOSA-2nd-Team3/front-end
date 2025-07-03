@@ -261,7 +261,7 @@ const fetchRoomMembers = async (roomId) => {
 
 const markAsRead = async (roomId) => {
   try {
-    await axios.post(`http://localhost:8080/room/${roomId}/read`, {})
+    await axios.post(`/api/room/${roomId}/read`, {})
     fetchChatRooms()
   } catch (err) {
     console.error('읽음 처리 실패:', err)
@@ -395,7 +395,7 @@ const handleBeforeUnload = (event) => {
   if (selectedRoomId.value) {
     const token = localStorage.getItem('accessToken')
     if (token) {
-      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+      const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
       
       // keepalive로 브라우저 종료 시에도 안전하게 전송
       fetch(`${baseURL}/room/${selectedRoomId.value}/read`, {
@@ -422,7 +422,7 @@ const handleVisibilityChange = async () => {
       // 실패 시 fetch + keepalive로 재시도
       const token = localStorage.getItem('accessToken')
       if (token) {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+        const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
         fetch(`${baseURL}/room/${selectedRoomId.value}/read`, {
           method: 'POST',
           headers: {
