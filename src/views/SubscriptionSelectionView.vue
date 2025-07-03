@@ -77,7 +77,7 @@ import {
   SafetyOutlined,
   DatabaseOutlined,
   BookOutlined,
-  CloudOutlined,
+  WifiOutlined,
   DesktopOutlined,
   AppstoreOutlined
 } from '@ant-design/icons-vue'
@@ -95,9 +95,9 @@ const categories = ref([
   { id: 2, label: '음악', icon: CustomerServiceOutlined, color: '#52c41a' },
   { id: 3, label: '보안', icon: SafetyOutlined, color: '#1890ff' },
   { id: 4, label: '소프트웨어', icon: DatabaseOutlined, color: '#722ed1' },
-  { id: 5, label: '독서', icon: BookOutlined, color: '#fa8c16' },
-  { id: 6, label: '클라우드', icon: CloudOutlined, color: '#13c2c2' },
-  { id: 7, label: '게임', icon: DesktopOutlined, color: '#eb2f96' },
+  { id: 5, label: 'VPN', icon: WifiOutlined, color: '#13c2c2' },
+  { id: 6, label: '게임', icon: DesktopOutlined, color: '#eb2f96' },
+  { id: 7, label: '독서', icon: BookOutlined, color: '#fa8c16' },
   { id: 8, label: '기타', icon: AppstoreOutlined, color: '#666' }
 ])
 
