@@ -466,14 +466,17 @@ const stopSharing = () => {
           // 1. roomId 먼저 획득
           const roomResponse = await axios.get(`http://localhost:8080/api/chat/room-by-post/${postId}`);
           const roomId = roomResponse.data.chatRoomId;
+          
+          
+          // 3. 채팅방 삭제
+          await axios.delete(`http://localhost:8080/api/chat-room/${roomId}`);
 
           // 2. 파티 삭제
           await axios.delete(`/api/post/${serviceData.value.id}/out`, {
             data: { loginId: loginId.value }
           });
 
-          // 3. 채팅방 삭제
-          await axios.delete(`http://localhost:8080/chat-room/${roomId}`);
+          
 
           message.success('파티가 삭제되었습니다.');
           router.push('/dashboard');
@@ -502,7 +505,7 @@ const outSharing = () => {
           });
 
           // 3. 채팅방 탈퇴
-          await axios.delete(`http://localhost:8080/chat-room/${roomId}/leave`);
+          await axios.delete(`http://localhost:8080/api/chat-room/${roomId}/leave`);
 
           message.success('파티와 채팅방이 탈퇴되었습니다.');
           router.push('/dashboard');

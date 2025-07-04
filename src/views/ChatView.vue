@@ -56,7 +56,7 @@
                       :style="{textAlign: msg.senderLoginId === senderLoginId ? 'right':'left', marginBottom:'18px'}"
                   >
                     <div>
-                      <b>{{ msg.senderLoginId }}</b>
+                      <b>{{ getSenderNickName(msg) }}</b>
                       <span v-if="msg.senderLoginId == selectedRoom.leaderId" style="color:orange; font-size:13px; margin-left:4px;">(파티장)</span>
                       <span v-else style="color:#666; font-size:13px; margin-left:4px;">(파티원)</span>
                     </div>
@@ -143,6 +143,7 @@ const stompClient = ref(null)
 const connected = ref(false)
 const subscription = ref(null)
 const senderLoginId = ref(null)
+const senderNickName = ref(null)
 const messageBox = ref(null)
 const roomMembers = ref([])
 const membersLoading = ref(false)
@@ -174,19 +175,24 @@ onMounted(async () => {
   // 우선순위: 스토어 → localStorage → 기본값
   if (fromStore) {
     senderLoginId.value = fromStore
+    senderNickName.value = authStore.userInfo?.nickName || fromStore
   } else if (fromLocalStorage) {
     senderLoginId.value = fromLocalStorage
+    senderNickName.value = localStorage.getItem('nickName') || fromLocalStorage
   } else if (hasToken) {
     // 토큰은 있지만 loginId가 없는 경우 - 인증 상태 재확인
     await authStore.checkAuthStatus()
 
     if (authStore.userInfo?.loginId) {
       senderLoginId.value = authStore.userInfo.loginId
+      senderNickName.value = authStore.userInfo?.nickName || authStore.userInfo.loginId
     } else {
       senderLoginId.value = 'unknown_user'
+      senderNickName.value = 'unknown_user'
     }
   } else {
     senderLoginId.value = null
+    senderNickName.value = null
   }
 
   await fetchChatRooms()
@@ -261,7 +267,7 @@ const fetchRoomMembers = async (roomId) => {
 
 const markAsRead = async (roomId) => {
   try {
-    await axios.post(`http://localhost:8080/room/${roomId}/read`, {})
+    await axios.post(`/api/room/${roomId}/read`, {})
     fetchChatRooms()
   } catch (err) {
     console.error('읽음 처리 실패:', err)
@@ -366,8 +372,13 @@ const sendMessage = () => {
     return
   }
 
+  // roomMembers에서 현재 사용자의 닉네임 찾기
+  const currentUserMember = roomMembers.value.find(member => member.loginId === senderLoginId.value)
+  const currentUserNickName = currentUserMember?.nickName || senderLoginId.value
+
   const message = {
     senderLoginId: senderLoginId.value,
+    senderNickName: currentUserNickName,
     message: newMessage.value.trim(),
   }
 
@@ -395,7 +406,7 @@ const handleBeforeUnload = (event) => {
   if (selectedRoomId.value) {
     const token = localStorage.getItem('accessToken')
     if (token) {
-      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+      const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
       
       // keepalive로 브라우저 종료 시에도 안전하게 전송
       fetch(`${baseURL}/room/${selectedRoomId.value}/read`, {
@@ -422,7 +433,7 @@ const handleVisibilityChange = async () => {
       // 실패 시 fetch + keepalive로 재시도
       const token = localStorage.getItem('accessToken')
       if (token) {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+        const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
         fetch(`${baseURL}/room/${selectedRoomId.value}/read`, {
           method: 'POST',
           headers: {
@@ -437,6 +448,19 @@ const handleVisibilityChange = async () => {
     }
   }
 }
+
+// 메시지의 닉네임 가져오기 (새 메시지는 senderNickName, 기존 메시지는 roomMembers에서 매핑)
+const getSenderNickName = (msg) => {
+  // 새 메시지에 senderNickName이 있으면 사용
+  if (msg.senderNickName) {
+    return msg.senderNickName
+  }
+  
+  // 기존 메시지는 roomMembers에서 loginId로 닉네임 찾기
+  const member = roomMembers.value.find(m => m.loginId === msg.senderLoginId)
+  return member ? member.nickName : msg.senderLoginId
+}
+
 </script>
 
 <style scoped>

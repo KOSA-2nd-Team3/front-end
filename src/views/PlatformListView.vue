@@ -277,10 +277,10 @@ const handleJoinParty = async (party) => {
     });
 
     party.currentCount += 1
-    message.success(`${party.leaderName}님의 파티에 참여했습니다!`)
+    message.success(`파티에 참여했습니다!`)
 
     try {
-      await axios.post(`http://localhost:8080/room/group/${party.postId}/join`)
+      await axios.post(`http://localhost:8080/api/room/group/${party.postId}/join`)
       message.success('채팅방에 참여했습니다.')
     } catch (error) {
       console.error('채팅방 참여 실패: ', error)
@@ -306,7 +306,7 @@ const handleJoinParty = async (party) => {
         message.error(error.response.data?.message || '메일 전송 중 알 수 없는 오류가 발생했습니다.');
       }
     }
-    message.success(`${party.leaderName}님이 파티를 참여!`)
+
   }
 
   // 대시보드 상세 페이지로 이동
