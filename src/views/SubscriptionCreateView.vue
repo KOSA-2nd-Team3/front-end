@@ -104,7 +104,7 @@
             <!-- 다음 버튼 -->
             <div class="action-section">
               <a-button type="primary" size="large" class="next-button" @click="proceedToNext">
-                다음
+                완료
               </a-button>
             </div>
           </div>
@@ -319,7 +319,7 @@ const proceedToNext = async () => {
 
       console.log('🚀 채팅방 생성 API 호출:', chatRoomData)
 
-      await axios.post('http://localhost:8080/room/group/create', chatRoomData)
+      await axios.post('http://localhost:8080/api/room/group/create', chatRoomData)
       console.log('✅ 채팅방 생성 성공')
 
     } catch (chatError) {
