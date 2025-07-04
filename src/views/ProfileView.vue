@@ -108,7 +108,7 @@ const fetchProfile = async () => {
   error.value = ''
 
   try {
-    const response = await axios.get('http://localhost:8080/member/profile')
+    const response = await axios.get('http://localhost:8080/api/member/profile')
 
     profileData.value = response.data
   } catch (err) {
@@ -152,7 +152,7 @@ const clearNicknameError = () => {
 // 닉네임 중복 체크
 const checkNickname = async (nickname) => {
   try {
-    const response = await axios.post('http://localhost:8080/member/nickname', {
+    const response = await axios.post('http://localhost:8080/api/member/nickname', {
       nickname: nickname
     }, {
       headers: {
@@ -191,7 +191,7 @@ const updateNickname = async () => {
     }
 
     // 2. 닉네임 업데이트
-    const response = await axios.put('http://localhost:8080/member/nickname', {
+    const response = await axios.put('http://localhost:8080/api/member/nickname', {
       nickname: newNickname.value.trim(),
     }, {
       headers: {
